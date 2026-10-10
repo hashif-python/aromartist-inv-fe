@@ -1,0 +1,12 @@
+import React from 'react';
+import {ChevronRight,RefreshCw} from 'lucide-react';
+import {Link,useLocation} from 'react-router-dom';
+import {useAuth} from '../../context/AuthContext';
+const creates={
+ '/warehouses':['administration.warehouse.create','warehouse.manage'],'/branches':['administration.branch.create','*'],'/suppliers':['purchases.supplier.create','*'],'/purchases/orders':['purchases.order.create','purchases.view'],'/purchases/grn':['purchases.grn.create','purchases.grn'],'/purchases/bills':['purchases.bill.create','purchases.bills'],'/purchases/returns':['purchases.return.create','purchases.returns'],
+ '/inventory/raw-materials':['inventory.raw_material.create','warehouse.manage'],'/inventory/adjustments':['inventory.adjustment.create','inventory.adjust'],'/inventory/wastage':['inventory.wastage.create','inventory.wastage'],'/inventory/fragrances':['inventory.fragrance.create','production.formulation'],'/inventory/categories':['inventory.category.create','warehouse.manage'],'/inventory/bottle-setup':['inventory.bottle_setup.create','inventory.concentration.create','production.formulation'],
+ '/transfers':['inventory.transfer.create','transfers.create'],'/sales/customers':['sales.customer.create','customers.manage','customers.quick_add'],'/accounts/expenses':['accounting.expense.create','finance.expenses']};
+export const PageHeader=({title,subtitle,breadcrumbs=[],primaryAction,primaryPermission,secondaryActions=[],onRefresh})=>{
+ const {pathname}=useLocation();const {hasPermission}=useAuth();const permission=primaryPermission||creates[pathname];const allowed=!permission||hasPermission(permission);
+ return <div className="erp-page-header"><div className="min-w-0">{breadcrumbs.length>0&&<nav aria-label="Breadcrumb" className="eyebrow">{breadcrumbs.map((crumb,i)=><React.Fragment key={i}>{i>0&&<ChevronRight size={12}/ >}{crumb.href?<Link to={crumb.href} className="hover:underline">{crumb.label}</Link>:<span aria-current="page">{crumb.label}</span>}</React.Fragment>)}</nav>}<h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div><div className="erp-header-actions"><button type="button" onClick={onRefresh||(()=>window.location.reload())} className="erp-secondary" title="Reload saved records"><RefreshCw size={14}/><span>Refresh</span></button>{secondaryActions.map((a,i)=><React.Fragment key={i}>{a}</React.Fragment>)}{primaryAction&&allowed&&<div>{primaryAction}</div>}</div></div>;
+};

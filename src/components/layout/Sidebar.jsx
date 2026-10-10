@@ -1,0 +1,21 @@
+import React, {useEffect,useState,useRef} from 'react';
+import {NavLink,useLocation} from 'react-router-dom';
+import {ChevronDown,ChevronRight,X,PanelLeftClose,PanelLeftOpen} from 'lucide-react';
+import {useAuth} from '../../context/AuthContext';
+import {navigation,visibleItem,flattenNavigation} from './navigation';
+function contains(item,path){return path===item.path||path.startsWith(item.path+'/')||(item.children||[]).some(c=>contains(c,path));}
+function Item({item,onClose,hasPermission}){
+ const {pathname}=useLocation();const active=contains(item,pathname);const [expanded,setExpanded]=useState(active);
+ useEffect(()=>{if(active)setExpanded(true)},[active]);
+ const children=(item.children||[]).filter(c=>visibleItem(c,hasPermission));
+ if(!visibleItem(item,hasPermission))return null;
+ const Icon=item.icon;const own=item.permission==='*'||hasPermission(item.permission);
+ return <div><div className="flex items-center">{own&&<NavLink to={item.path} onClick={onClose} className={({isActive})=>`erp-nav-link flex-1 ${isActive?'active':''}`} end={!item.path.includes('products')}><Icon/><span>{item.label}</span></NavLink>}{children.length>0&&<button className="p-2 text-[#bdb1ca]" aria-label={`${expanded?'Collapse':'Expand'} ${item.label}`} aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}>{expanded?<ChevronDown size={13}/>:<ChevronRight size={13}/>}</button>}</div>{children.length>0&&expanded&&<div className="erp-nav-nested">{children.map(c=><Item key={c.path} item={c} onClose={onClose} hasPermission={hasPermission}/>)}</div>}</div>;
+}
+export function Sidebar({isOpen,onClose,collapsed,onToggle}){
+ const {hasPermission}=useAuth();const {pathname}=useLocation();const ref=useRef(null);const [closed,setClosed]=useState({});
+ useEffect(()=>{setClosed(c=>({...c,[navigation.find(g=>g.items.some(i=>contains(i,pathname)))?.group]:false}))},[pathname]);
+ useEffect(()=>{if(!isOpen)return;const old=document.activeElement;const first=ref.current?.querySelector('button');first?.focus();const handle=e=>{if(e.key==='Escape'){e.preventDefault();onClose();}if(e.key==='Tab'){const nodes=[...ref.current.querySelectorAll('a,button')].filter(n=>n.offsetParent!==null);const start=nodes[0],end=nodes.at(-1);if(e.shiftKey&&document.activeElement===start){e.preventDefault();end?.focus()}else if(!e.shiftKey&&document.activeElement===end){e.preventDefault();start?.focus()}}};document.addEventListener('keydown',handle);return()=>{document.removeEventListener('keydown',handle);old?.focus()}},[isOpen,onClose]);
+ const compact=collapsed&&!isOpen;
+ return <>{isOpen&&<button aria-label="Close navigation overlay" onClick={onClose} className="fixed inset-0 bg-[#21182980] z-40 lg:hidden"/>}<aside ref={ref} className={`erp-sidebar no-print ${isOpen?'is-open':''}`} aria-label="Primary navigation"><div className="erp-brand"><span className="erp-monogram">P</span>{!compact&&<div><strong>PerfumASol</strong><small>by Aromartist</small></div>}<button onClick={onClose} aria-label="Close navigation" className="ml-auto lg:hidden text-[var(--muted)]"><X size={18}/></button></div><nav aria-label="Modules">{compact?flattenNavigation().filter(i=>i.permission==='*'||hasPermission(i.permission)).map(i=>{const Icon=i.icon;return <NavLink key={i.path} title={i.label} aria-label={i.label} to={i.path} onClick={onClose} className={({isActive})=>`erp-nav-link ${isActive?'active':''}`} end={!i.path.includes('products')}><Icon/></NavLink>}):navigation.map(g=>{const items=g.items.filter(i=>visibleItem(i,hasPermission));if(!items.length)return null;return <div key={g.group} className="erp-nav-group"><button className="erp-group-toggle" aria-expanded={!closed[g.group]} onClick={()=>setClosed({...closed,[g.group]:!closed[g.group]})}>{g.group}<ChevronDown size={12} className={closed[g.group]?'-rotate-90':''}/></button>{!closed[g.group]&&items.map(i=><Item key={i.path} item={i} onClose={onClose} hasPermission={hasPermission}/>)}</div>})}</nav><div className="erp-sidebar-footer"><button onClick={onToggle} className="hidden lg:flex items-center gap-2 text-[var(--muted)]" aria-label={collapsed?'Expand sidebar':'Collapse sidebar'}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>} {!compact&&'Collapse navigation'}</button>{!compact&&<p className="mt-3">Aromartist · Operations workspace</p>}</div></aside></>;
+}
