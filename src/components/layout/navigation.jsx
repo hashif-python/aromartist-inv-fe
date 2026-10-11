@@ -198,10 +198,7 @@ export const NAV_GROUPS = [
   },
 ];
 
-const inventory=NAV_GROUPS.find(g=>g.group==='Inventory');
-const categories=inventory.items.find(i=>i.path==='/inventory/categories');
-inventory.items=inventory.items.filter(i=>i.path!=='/inventory/categories');
-const administration={group:'Administration',items:[categories,...NAV_GROUPS.find(g=>g.group==='Branches').items,...NAV_GROUPS.find(g=>g.group==='Warehouses').items,...NAV_GROUPS.find(g=>g.group==='Settings').items]};
+const administration={group:'Administration',items:[...NAV_GROUPS.find(g=>g.group==='Dashboard').items,...NAV_GROUPS.find(g=>g.group==='Branches').items,...NAV_GROUPS.find(g=>g.group==='Warehouses').items,...NAV_GROUPS.find(g=>g.group==='Settings').items]};
 const routePermissions={
 '/warehouses':['administration.warehouse.view','warehouse.view'], '/branches':['administration.branch.view','branch.view'],
 '/inventory/categories':['inventory.category.view','inventory.view'],'/inventory/raw-materials':['inventory.raw_material.view','inventory.view'],'/inventory/fragrances':['inventory.fragrance.view','inventory.view'],'/inventory/formulations':['inventory.formulation.view','inventory.view'],'/inventory/products':['inventory.product.view','inventory.view'],'/inventory/bottle-setup':['inventory.bottle_setup.view','production.view'],'/inventory/overview':['inventory.stock.view','inventory.view'],'/inventory/movements':['inventory.movement.view','inventory.view'],'/inventory/adjustments':['inventory.adjustment.view','inventory.adjust'],'/inventory/wastage':['inventory.wastage.view','inventory.wastage'],'/inventory/low-stock':['inventory.stock.view','inventory.view'],'/transfers':['inventory.transfer.view','transfers.view'],
@@ -213,7 +210,7 @@ for(const item of administration.items)if(routePermissions[item.path])item.permi
 const hrItems=[['employees','Employees',['employee','designation']],['attendance','Attendance',['attendance','shift','shift_assignment']],['leaves','Leave Management',['leave','leave_balance','leave_type']],['payroll','Payroll',['payroll','payroll_period','salary','salary_revision']],['salary-advances','Salary Advances',['advance']],['holidays','Holidays',['holiday']],['policy','HR Settings',['policy']]];
 const hrGroup={group:'HRMS',items:hrItems.map(([section,label,resources])=>({label,path:`/hrms/${section}`,icon:Users,permission:resources.map(resource=>`hrms.${resource}.view`)}))};
 administration.items.push({label:'Users',path:'/administration/users',icon:Users,permission:'access.users.manage'},{label:'Roles & Permissions',path:'/administration/roles',icon:SlidersHorizontal,permission:'access.roles.manage'},{label:'Permission Audit',path:'/administration/audit',icon:Receipt,permission:'access.audit.view'});
-export const navigation=[...NAV_GROUPS.filter(g=>!['Branches','Warehouses','Settings'].includes(g.group)).flatMap(g=>g.group==='Sales'?[g,hrGroup]:[g]),administration];
+export const navigation=[administration,...NAV_GROUPS.filter(g=>!['Dashboard','Branches','Warehouses','Settings'].includes(g.group)).flatMap(g=>g.group==='Sales'?[g,hrGroup]:[g])];
 export function flattenNavigation(groups=navigation){return groups.flatMap(g=>g.items.flatMap(function walk(item){return [{...item,group:g.group},...(item.children||[]).flatMap(walk)]}));}
 export function visibleItem(item,hasPermission){return item.permission==='*'||(Array.isArray(item.permission)?item.permission.some(hasPermission):hasPermission(item.permission))||(item.children||[]).some(c=>visibleItem(c,hasPermission));}
 export function pageContext(path){const matches=flattenNavigation().filter(i=>path===i.path||path.startsWith(i.path+'/'));return matches.sort((a,b)=>b.path.length-a.path.length)[0]||{label:'Workspace',group:'PerfumASol'};}
