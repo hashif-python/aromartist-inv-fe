@@ -135,7 +135,7 @@ export const CreateBillModal = ({ isOpen, onClose, onSuccess }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <NumberInput
-              label="Total Bill Amount (AED)"
+              label="Total Bill Amount (INR)"
               placeholder="e.g. 250000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -143,7 +143,7 @@ export const CreateBillModal = ({ isOpen, onClose, onSuccess }) => {
               min={1}
             />
             <NumberInput
-              label="Initial Amount Paid (AED)"
+              label="Initial Amount Paid (INR)"
               placeholder="e.g. 0"
               value={paid}
               onChange={(e) => setPaid(e.target.value)}

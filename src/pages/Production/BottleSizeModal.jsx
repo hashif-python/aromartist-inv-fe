@@ -9,10 +9,13 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
   const isEdit = !!bottleSize;
 
   const [name, setName] = useState('');
+  const [priceMultiplier,setMultiplier]=useState(''),[priceSurcharge,setSurcharge]=useState('0');
   const [volumeMl, setVolumeMl] = useState(50);
   const [bottleMaterialRef, setBottleMaterialRef] = useState('');
   const [pumpMaterialRef,setPumpMaterialRef]=useState('');
   const [capMaterialRef,setCapMaterialRef]=useState('');
+  const [dipTubeMaterialRef,setDipTubeMaterialRef]=useState('');
+  const [labelMaterialRef,setLabelMaterialRef]=useState('');
   const [customRef, setCustomRef] = useState('');
   const [useCustomRef, setUseCustomRef] = useState(false);
   const [status, setStatus] = useState('active');
@@ -25,6 +28,8 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
       loadRawMaterials();
       setPumpMaterialRef(bottleSize?.pumpMaterialRef || '');
       setCapMaterialRef(bottleSize?.capMaterialRef || '');
+      setDipTubeMaterialRef(bottleSize?.dipTubeMaterialRef || '');
+      setLabelMaterialRef(bottleSize?.labelMaterialRef || '');setMultiplier(bottleSize?.priceMultiplier??'');setSurcharge(bottleSize?.priceSurcharge??'0');
       if (bottleSize) {
         setName(bottleSize.name || '');
         setVolumeMl(bottleSize.volumeMl || 50);
@@ -53,13 +58,15 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
       const list = bottleItems;
       setRawMaterials(list);
       if (list.length > 0 && !bottleSize?.bottleMaterialRef) {
-        setBottleMaterialRef(list[0].id);
+        setBottleMaterialRef(list.find(m=>m.packagingType==='Bottle')?.id||'');
       }
     } catch (err) {
       console.error('Failed to fetch raw material bottles', err);
     }
   };
 
+  const labelFor=m=>`${m.name} · INR ${Number(m.currentCost||0).toFixed(2)}/pcs · ${Number(m.availableStock||0)} pcs available`;
+  const candidates=type=>rawMaterials.filter(m=>m.packagingType===type&&(!(m.compatibleBottleSizes||[]).length||(bottleSize&&m.compatibleBottleSizes.includes(bottleSize.id))));
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -74,17 +81,22 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
     }
 
     const material = useCustomRef ? rawMaterials.find(m => m.code === customRef.trim() || m.id === customRef.trim()) : rawMaterials.find(m => m.id === bottleMaterialRef);
-    if (!material) { toast.error('Select a saved bottle material or enter its existing material code.'); return; }
+    if (!material || material.packagingType!=='Bottle') { toast.error('Select a saved bottle material or enter its existing material code.'); return; }
     const finalMaterialRef = material.id;
 
+    if(!capMaterialRef||!pumpMaterialRef||!labelMaterialRef){toast.error('Select a cap, pump and label for this bottle package.');return;}
     setSubmitting(true);
     try {
       const formData = {
         name: name.trim(),
         volumeMl: Number(volumeMl),
+        priceMultiplier:priceMultiplier===''?null:Number(priceMultiplier),
+        priceSurcharge:Number(priceSurcharge||0),
         bottleMaterialRef: finalMaterialRef,
         pumpMaterialRef:pumpMaterialRef || null,
         capMaterialRef:capMaterialRef || null,
+        dipTubeMaterialRef:dipTubeMaterialRef || null,
+        labelMaterialRef:labelMaterialRef || null,
         status,
       };
 
@@ -166,17 +178,17 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
               <SelectInput
                 value={bottleMaterialRef}
                 onChange={(e) => setBottleMaterialRef(e.target.value)}
-                options={rawMaterials.map((rm) => ({
-                  label: `${rm.name} (${rm.code || rm.id})`,
+                options={[{value:'',label:'Select Bottle material'},...candidates('Bottle').map((rm) => ({
+                  label: labelFor(rm),
                   value: rm.id,
-                }))}
+                }))]}
               />
             )}
           </div>
 
-          {[["Default Pump",pumpMaterialRef,setPumpMaterialRef],["Default Cap",capMaterialRef,setCapMaterialRef]].map(([label,value,setValue])=><SelectInput key={label} label={label} value={value} onChange={e=>setValue(e.target.value)} options={rawMaterials.filter(m=>!(m.compatibleBottleSizes||[]).length || (bottleSize && m.compatibleBottleSizes.includes(bottleSize.id))).map(m=>({value:m.id,label:m.name}))}/>)}
-          <p>One bottle, one pump and one cap per perfume. Defaults are used automatically in product creation. If blank, a single compatible pump/cap is selected automatically.</p>
-          <SelectInput
+          {[["Pump / Atomizer",'Pump',pumpMaterialRef,setPumpMaterialRef],["Cap",'Cap',capMaterialRef,setCapMaterialRef],["Label",'Label',labelMaterialRef,setLabelMaterialRef],["Separate Dip Tube (optional)",'Dip Tube',dipTubeMaterialRef,setDipTubeMaterialRef]].map(([label,type,value,setValue])=><SelectInput key={label} label={label} required={type!=='Dip Tube'} value={value} onChange={e=>setValue(e.target.value)} options={[{value:'',label:type==='Dip Tube'?'Included in pump / no separate stock':`Select ${label}`},...candidates(type).map(m=>({value:m.id,label:labelFor(m)}))]}/>)}
+          <p>One bottle, one pump, one cap and one label per perfume. Defaults are used automatically in product creation. Configure all four before creating products. Link a separate dip tube only if it is stocked separately; leave it blank if included with the pump.</p>
+          <NumberInput label="Fragrance price multiplier (optional)" value={priceMultiplier} onChange={e=>setMultiplier(e.target.value)} min="0.0001" step="0.0001"/><NumberInput label="Size surcharge per bottle (INR)" value={priceSurcharge} onChange={e=>setSurcharge(e.target.value)} min="0" step="0.0001"/><p>Blank multiplier scales the highest fragrance price by volume / 100 ml. Set a multiplier to override size scaling. Final price = highest selected type price × multiplier + surcharge. Packaging costs enter COGS separately; configure a surcharge if needed.</p><p>Displayed availability is stock across your accessible locations. POS validates the exact selling branch. Materials must have the matching subtype in Raw Materials. Empty lists mean no active, compatible material of that subtype.</p><p>Packaging cost per bottle: INR {[bottleMaterialRef,capMaterialRef,pumpMaterialRef,labelMaterialRef,dipTubeMaterialRef].filter(Boolean).reduce((sum,id)=>sum+Number(rawMaterials.find(m=>m.id===id)?.currentCost||0),0).toFixed(2)}</p><SelectInput
             label="Status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}

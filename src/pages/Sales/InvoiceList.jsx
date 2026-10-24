@@ -5,16 +5,18 @@ import { DataTable } from '../../components/common/DataTable';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { salesApi } from '../../api/salesApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Eye, RotateCcw, Trash2, Edit, X } from 'lucide-react';
+import { Eye, RotateCcw, Trash2, Edit, X, Printer, MessageCircle } from 'lucide-react';
 import { InvoiceDetailModal } from './InvoiceDetailModal';
 import { SalesReturnsModal } from './SalesReturnsModal';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { toast } from 'sonner';
+import {apiClient,errorMessage} from '../../api/client';
 
 export const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [printInvoice, setPrintInvoice] = useState(null);
   const [returnInvoice, setReturnInvoice] = useState(null);
   const [editInvoice, setEditInvoice] = useState(null);
   const [deleteInvoice, setDeleteInvoice] = useState(null);
@@ -45,6 +47,13 @@ export const InvoiceList = () => {
     } finally {
       setDeleteInvoice(null);
     }
+  };
+
+  const sendWhatsApp = async (invoice) => {
+    const phone=window.prompt('Customer WhatsApp number (include country code)',invoice.customerMobile||'');
+    if(phone===null)return;
+    if(!phone.trim()){toast.error('Enter a customer WhatsApp number.');return;}
+    try{await apiClient.post(`/sales/invoices/${invoice.id}/whatsapp/send/`,{phone:phone.trim()});toast.success('Invoice PDF submitted to WhatsApp.')}catch(e){toast.error(errorMessage(e));}
   };
 
   // Section 12A Columns: Invoice, Date, Customer, Branch, Qty, Subtotal, Discount, Total, Payment Status, Salesperson and Actions
@@ -114,6 +123,16 @@ export const InvoiceList = () => {
             <Eye className="w-3.5 h-3.5" />
             <span>View</span>
           </button>
+          <button type="button" onClick={()=>sendWhatsApp(row)} className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1" title="Send invoice PDF to WhatsApp"><MessageCircle className="w-3.5 h-3.5"/><span>WhatsApp</span></button>
+          <button
+            type="button"
+            onClick={() => setPrintInvoice(row)}
+            className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
+            title="Print thermal receipt"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print</span>
+          </button>
           <Can permission={["sales.invoice.edit","sales.pos"]}><button
             onClick={() => setEditInvoice(row)}
             className="px-2.5 py-1 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-gray-900 border border-gray-300 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
@@ -153,6 +172,15 @@ export const InvoiceList = () => {
 
       {selectedInvoice && (
         <InvoiceDetailModal isOpen={!!selectedInvoice} invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />
+      )}
+
+      {printInvoice && (
+        <InvoiceDetailModal
+          isOpen={!!printInvoice}
+          invoice={printInvoice}
+          onClose={() => setPrintInvoice(null)}
+          thermal
+        />
       )}
 
       {/* Edit Invoice Modal (No Back to View button, Cancel closes modal) */}

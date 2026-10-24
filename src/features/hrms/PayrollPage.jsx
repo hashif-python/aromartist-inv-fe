@@ -1718,7 +1718,7 @@ export default function PayrollPage() {
 
                 {numberValue(editingPayroll.advance_deduction) > 0 ? (
                   <p className="mt-2 text-xs text-amber-600">
-                    Existing advance deduction: AED{" "}
+                    Existing advance deduction: INR{" "}
                     {numberValue(editingPayroll.advance_deduction).toFixed(2)}.
                     Advance deduction remains linked to this payroll entry.
                   </p>
@@ -1726,7 +1726,7 @@ export default function PayrollPage() {
 
                 {numberValue(editingPayroll.loan_deduction) > 0 ? (
                   <p className="mt-1 text-xs text-orange-600">
-                    Existing loan deduction: AED{" "}
+                    Existing loan deduction: INR{" "}
                     {numberValue(editingPayroll.loan_deduction).toFixed(2)}.
                     Loan deduction remains linked to this payroll entry.
                   </p>

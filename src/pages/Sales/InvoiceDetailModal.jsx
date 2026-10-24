@@ -2,12 +2,21 @@ import React from 'react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { Printer, X } from 'lucide-react';
 
-export const InvoiceDetailModal = ({ isOpen, invoice, onClose }) => {
+export const InvoiceDetailModal = ({ isOpen, invoice, onClose, thermal = false }) => {
   if (!isOpen || !invoice) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
+  const amount = (value) => Number(value ?? 0);
+  const total = amount(invoice.total);
+  const discount = amount(invoice.discount);
+  const gst = amount(invoice.gstAmount ?? invoice.taxAmount ?? invoice.tax ?? 0);
+  const rate = amount(invoice.gstRate ?? 0);
+  const interState = Boolean(invoice.interState);
+  const cgst = interState ? 0 : amount(invoice.cgst ?? gst / 2);
+  const sgst = interState ? 0 : amount(invoice.sgst ?? gst - cgst);
+  const igst = interState ? amount(invoice.igst ?? gst) : 0;
+  const subtotal = amount(invoice.subtotal ?? total + discount);
+  const taxable = amount(invoice.taxableAmount ?? (total - gst));
 
   return (
     <>
@@ -24,9 +33,10 @@ export const InvoiceDetailModal = ({ isOpen, invoice, onClose }) => {
             position: fixed !important;
             left: 0 !important;
             top: 0 !important;
-            width: 100% !important;
+            width: ${thermal ? '72mm' : '100%'} !important;
+            max-width: ${thermal ? '72mm' : 'none'} !important;
             margin: 0 !important;
-            padding: 20px !important;
+            padding: ${thermal ? '2mm' : '20px'} !important;
             box-shadow: none !important;
             border: none !important;
             background: white !important;
@@ -34,6 +44,7 @@ export const InvoiceDetailModal = ({ isOpen, invoice, onClose }) => {
           .no-print {
             display: none !important;
           }
+          @page { size: ${thermal ? '80mm auto' : 'auto'}; margin: ${thermal ? '3mm' : '8mm'}; }
         }
       `}</style>
 
@@ -57,7 +68,7 @@ export const InvoiceDetailModal = ({ isOpen, invoice, onClose }) => {
           </div>
 
           {/* Printable Receipt Body */}
-          <div id="printable-invoice-area" className="erp-panel p-6  font-sans text-gray-900  ">
+          <div id="printable-invoice-area" className={thermal ? "bg-white p-3 font-mono text-black text-xs max-w-[320px] mx-auto" : "erp-panel p-6 font-sans text-gray-900"}>
             {/* Aromartist Branding Header */}
             <div className="text-center border-b border-gray-200 pb-4 mb-4">
               <h1 className="text-2xl font-bold font-sans text-[var(--ink)] tracking-wider uppercase">Aromartist Perfume</h1>
@@ -66,22 +77,23 @@ export const InvoiceDetailModal = ({ isOpen, invoice, onClose }) => {
             </div>
 
             {/* Invoice Info */}
-            <div className="grid grid-cols-2 gap-4 text-xs mb-4 pb-4 border-b border-gray-200">
+            <div className={thermal ? "space-y-1 text-xs mb-4 pb-4 border-b border-dashed border-gray-300" : "grid grid-cols-2 gap-4 text-xs mb-4 pb-4 border-b border-gray-200"}>
               <div>
                 <p><strong>Invoice No:</strong> <span className="font-mono font-bold text-[var(--primary)]">{invoice.invoiceNumber}</span></p>
                 <p><strong>Date & Time:</strong> {formatDate(invoice.date, true)}</p>
                 <p><strong>Salesperson:</strong> {invoice.salesperson || 'Cashier'}</p>
               </div>
-              <div className="text-right">
+              <div className={thermal ? "text-left" : "text-right"}>
                 <p><strong>Customer:</strong> {invoice.customerName}</p>
                 <p><strong>Mobile:</strong> {invoice.customerMobile}</p>
                 <p><strong>Payment Method:</strong> <span className="font-bold text-emerald-700">{invoice.paymentMethod || 'Cash'}</span></p>
               </div>
             </div>
 
+            {thermal && <div className="border-t border-dashed border-gray-400 my-3" />}
             {/* Items Table */}
             <div className="overflow-x-auto mb-4">
-              <table className="erp-table w-full text-left text-xs border-collapse">
+              <table className={thermal ? "w-full text-left text-[10px] border-collapse" : "erp-table w-full text-left text-xs border-collapse"}>
                 <thead>
                   <tr className="border-y border-gray-200 bg-gray-50 text-gray-700 font-bold uppercase text-xs">
                     <th className="py-2 px-2">Item Description</th>
@@ -108,16 +120,30 @@ export const InvoiceDetailModal = ({ isOpen, invoice, onClose }) => {
             </div>
 
             {/* Totals Summary */}
-            <div className="bg-gray-50 p-4 rounded-xl space-y-1.5 text-xs border border-gray-200">
+            <div className={thermal ? "p-2 space-y-1.5 text-xs border-t border-dashed border-gray-400" : "bg-gray-50 p-4 rounded-xl space-y-1.5 text-xs border border-gray-200"}>
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal:</span>
                 <span className="font-bold text-gray-900">{formatCurrency(invoice.subtotal || invoice.total)}</span>
               </div>
-              {(invoice.discount > 0) && (
+              {discount > 0 && (
                 <div className="flex justify-between text-gray-600">
                   <span>Discount:</span>
                   <span className="font-bold text-rose-600">-{formatCurrency(invoice.discount)}</span>
                 </div>
+              )}
+              {gst <= 0 && <div className="flex justify-between text-gray-600"><span>GST (recorded)</span><span>{formatCurrency(0)}</span></div>}
+              {gst > 0 && (
+                <>
+                  <div className="flex justify-between text-gray-600"><span>Taxable value (GST inclusive)</span><span>{formatCurrency(taxable)}</span></div>
+                  {interState ? (
+                    <div className="flex justify-between text-gray-600"><span>IGST{rate ? ` (${rate}%)` : ''}</span><span>{formatCurrency(igst)}</span></div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-gray-600"><span>CGST{rate ? ` (${rate / 2}%)` : ''}</span><span>{formatCurrency(cgst)}</span></div>
+                      <div className="flex justify-between text-gray-600"><span>SGST{rate ? ` (${rate / 2}%)` : ''}</span><span>{formatCurrency(sgst)}</span></div>
+                    </>
+                  )}
+                </>
               )}
               <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
                 <span>Grand Total Paid:</span>

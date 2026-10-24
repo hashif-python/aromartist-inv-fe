@@ -1,5 +1,6 @@
 import {apiClient as api} from '../../api/client';
 import React, { useState, useEffect } from 'react';
+import {FragrancePriceFields} from '../../components/Perfume/FragrancePriceFields';
 import { TextInput, SelectInput, NumberInput, CurrencyInput } from '../../components/forms/FormControls';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { purchaseApi } from '../../api/purchaseApi';
@@ -15,7 +16,7 @@ import {
 import { toast } from 'sonner';
 
 export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialEdit = false }) => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, singleLocationMode, storeSetup } = useAuth();
   const canEdit = hasPermission('warehouse.manage');
 
   const [activeTab, setActiveTab] = useState('Overview');
@@ -30,10 +31,35 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
   useEffect(()=>{api.get("/bottle-sizes/").then(({data})=>setBottleSizes(data)).catch(()=>toast.error("Bottle sizes could not be loaded"))},[]);
   useEffect(()=>{api.get('/inventory/categories/').then(({data})=>setCategories(data)).catch(()=>{})},[]);
   const [category, setCategory] = useState('Perfume Oil');
+  const [fragrancePrices,setFragrancePrices]=useState({});
+  const [packagingType,setPackagingType]=useState('');
   const [unit, setUnit] = useState('ml');
   const [currentCost, setCurrentCost] = useState(0);
   const [minStock, setMinStock] = useState(0);
   const [status, setStatus] = useState('active');
+  const [locations, setLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [expectedQuantity, setExpectedQuantity] = useState(null);
+  const [quantityError, setQuantityError] = useState('');
+  const canAdjust = hasPermission('inventory.adjust') || hasPermission('warehouse.manage');
+  useEffect(() => {
+    Promise.all([api.get('/warehouses/'), api.get('/branches/')]).then(([w,b]) => {
+      const all=[...(w.data||[]),...(b.data||[])].filter(x=>x.status==='active'&&!x.isVirtual);
+      const allowed=singleLocationMode?all.filter(x=>String(x.id)===String(storeSetup?.warehouseId)):all;
+      setLocations(allowed);
+      setSelectedLocation(v=>allowed.some(x=>String(x.id)===String(v))?v:String(allowed[0]?.id||''));
+    }).catch(()=>setQuantityError('Could not load authorized locations.'));
+  }, [singleLocationMode, storeSetup?.warehouseId]);
+  useEffect(() => {
+    if (!isOpen || !material?.id || !selectedLocation || !isEditing) return;
+    let live=true;
+    setExpectedQuantity(null);setQuantity('');setQuantityError('');
+    inventoryApi.getCurrentQuantity(material.id, selectedLocation).then(({data})=>{
+      if(live){setQuantity(String(data.quantity));setExpectedQuantity(String(data.quantity));}
+    }).catch(()=>{if(live)setQuantityError('Unable to load current stock at this location.');});
+    return ()=>{live=false};
+  }, [isOpen, material?.id, selectedLocation, isEditing]);
 
   // Movements & History State
   const [movements, setMovements] = useState([]);
@@ -49,6 +75,7 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
       setCode(material.code || '');
       setName(material.name || '');
       setCategory(material.categoryRef || '');
+      setPackagingType(material.packagingType || '');setFragrancePrices(material.fragrancePrices||{});
       setCompatibleBottleSizes(material.compatibleBottleSizes || []);
       setUnit(material.unit || 'ml');
       setCurrentCost(material.currentCost || 0);
@@ -114,12 +141,15 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
       return;
     }
 
+    if (canAdjust && (!selectedLocation || expectedQuantity === null || quantityError)) {toast.error('Current quantity is not loaded. Select a valid stock location.');return;}
     setIsSaving(true);
     try {
       const updatedData = {
         code,
         name,
         categoryRef:category,
+        fragrancePrices:categories.find(c=>c.id===category)?.categoryType==='Perfume Oil'?fragrancePrices:{},
+        packagingType:categories.find(c=>c.id===category)?.categoryType==='Packaging'?packagingType:'',
         compatibleBottleSizes,
         unit,
         currentCost: Number(currentCost),
@@ -127,6 +157,13 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
         status,
       };
 
+      if (canAdjust && selectedLocation && expectedQuantity !== null) {
+        if (quantity === '' || !Number.isFinite(Number(quantity)) || Number(quantity) < 0 || (unit === 'pcs' && !Number.isInteger(Number(quantity)))) {
+          toast.error('Enter a valid non-negative current quantity.');setIsSaving(false);return;
+        }
+        // Post the stock correction first; a 409 leaves master data untouched.
+        await inventoryApi.setCurrentQuantity(material.id, {locationId:selectedLocation,quantity,expectedQuantity});
+      }
       const response=await inventoryApi.updateRawMaterial(material.id, updatedData);
       toast.success(`Raw material ${name} updated successfully!`);
       onUpdate(response.data);
@@ -216,7 +253,8 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              {categories.find(c=>c.id===category)?.categoryType==='Perfume Oil'&&<FragrancePriceFields value={fragrancePrices} onChange={setFragrancePrices}/>}<div className="grid grid-cols-3 gap-4">
+                {categories.find(c=>c.id===category)?.categoryType==='Packaging'&&<SelectInput label="Packaging subtype" value={packagingType} onChange={e=>setPackagingType(e.target.value)} required options={[{value:'',label:'Select subtype'},...['Bottle','Pump','Cap','Label','Dip Tube','Other'].map(value=>({value,label:value==='Pump'?'Pump / Atomizer':value}))]}/>}
                 {categories.find(c=>c.id===category)?.categoryType==='Packaging' && <label className="block text-sm font-medium">Compatible Bottle Sizes (Pumps / Caps / Packaging)
                   <select multiple value={compatibleBottleSizes} onChange={e=>setCompatibleBottleSizes(Array.from(e.target.selectedOptions,o=>o.value))} className="block w-full border rounded-lg p-2 mt-1">
                     {bottleSizes.filter(b=>b.status==='active'||compatibleBottleSizes.includes(b.id)).map(b=><option key={b.id} value={b.id}>{b.name} ({b.volumeMl} ml)</option>)}
@@ -260,6 +298,18 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
                 />
               </div>
 
+              <div className="space-y-2 border border-gray-200 rounded-xl p-3">
+                <label className="erp-field">Stock location
+                  <select className="erp-input" value={selectedLocation} onChange={e=>setSelectedLocation(e.target.value)} disabled={!canAdjust}>
+                    {locations.map(l=><option key={l.id} value={l.id}>{l.name} ({l.kind})</option>)}
+                  </select>
+                </label>
+                <label className="erp-field">Current Quantity ({unit})
+                  <input className="erp-input" type="number" min="0" step={unit==='pcs'?'1':'0.0001'} value={quantity} onChange={e=>setQuantity(e.target.value)} disabled={!canAdjust||expectedQuantity===null} placeholder="Loading actual current stock…" />
+                </label>
+                {quantityError&&<p role="alert" className="text-red-700">{quantityError}</p>}
+                <p className="text-xs text-gray-600">Changes are recorded as stock adjustments at the selected location; previous movements remain intact.</p>
+              </div>
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"

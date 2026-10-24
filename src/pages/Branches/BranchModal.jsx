@@ -26,6 +26,7 @@ export const BranchModal = ({ isOpen, branch, onClose, onUpdate, initialEdit = f
   // Edit form state
   const [warehouses,setWarehouses]=useState([]);
   const [warehouse,setWarehouse]=useState('');
+  const [isVirtual,setVirtual]=useState(false),[physicalBranches,setPhysicalBranches]=useState([]),[branchChoices,setBranchChoices]=useState([]);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
@@ -44,6 +45,8 @@ export const BranchModal = ({ isOpen, branch, onClose, onUpdate, initialEdit = f
   useEffect(() => {
     if (branch) {
       setWarehouse(branch.warehouse || '');
+      setVirtual(!!branch.isVirtual);setPhysicalBranches(branch.physicalBranches||[]);
+      branchApi.getBranches().then(({data})=>setBranchChoices(data.filter(b=>b.id!==branch.id&&!b.isVirtual&&b.status==='active'))).catch(()=>toast.error('Branch choices could not be loaded'));
       warehouseApi.getWarehouses().then(({data})=>setWarehouses(data.filter(w=>w.status==='active'))).catch(()=>toast.error('Warehouse choices could not be loaded'));
       setCode(branch.code || '');
       setName(branch.name || '');
@@ -96,7 +99,7 @@ export const BranchModal = ({ isOpen, branch, onClose, onUpdate, initialEdit = f
 
     setIsSaving(true);
     try {
-      const updatedData = { code, name, location, manager, status, warehouse };
+      const updatedData = { code, name, location, manager, status, warehouse:warehouse||null,isVirtual,physicalBranches:isVirtual?physicalBranches:[] };
       await branchApi.updateBranch(branch.id, updatedData);
       toast.success(`Branch ${name} updated successfully!`);
       onUpdate({ ...branch, ...updatedData, warehouseName:warehouses.find(w=>w.id===warehouse)?.name||'' });
@@ -183,8 +186,8 @@ export const BranchModal = ({ isOpen, branch, onClose, onUpdate, initialEdit = f
                 />
               </div>
 
-              <SelectInput label="Linked Warehouse" required value={warehouse} onChange={e=>setWarehouse(e.target.value)} options={[{value:'',label:'Select warehouse…'},...warehouses.map(w=>({value:w.id,label:w.name}))]}/>
-              <TextInput
+              <SelectInput label="Linked Warehouse" required={!isVirtual} value={warehouse} onChange={e=>setWarehouse(e.target.value)} options={[{value:'',label:'Select warehouse…'},...warehouses.map(w=>({value:w.id,label:w.name}))]}/>
+              <label className="block"><input type="checkbox" checked={isVirtual} onChange={e=>setVirtual(e.target.checked)}/> Virtual branch: require an explicit physical branch at POS</label>{isVirtual&&<div><p>Allowed physical branches (select Branch 1 and Branch 2):</p>{branchChoices.map(b=><label className="block" key={b.id}><input type="checkbox" checked={physicalBranches.includes(b.id)} onChange={e=>setPhysicalBranches(ids=>e.target.checked?[...ids,b.id]:ids.filter(id=>id!==b.id))}/>{b.name}</label>)}<p>Only branches without existing stock can become virtual.</p></div>}<TextInput
                 label="Physical Location Address"
                 required
                 value={location}

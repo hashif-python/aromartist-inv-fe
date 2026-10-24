@@ -1,11 +1,14 @@
+const PerfumeCatalogue=lazy(()=>import("./pages/Sales/ProductRecipe").then(m=>({default:m.PerfumeCatalogue})));
+const PerfumeForm=lazy(()=>import("./pages/Sales/ProductRecipe").then(m=>({default:m.PerfumeForm})));
+const PerfumeDetails=lazy(()=>import("./pages/Sales/ProductRecipe").then(m=>({default:m.PerfumeDetails})));
+const WhatsAppIntegration=lazy(()=>import("./pages/Settings/WhatsAppIntegration"));
+const Offers=lazy(()=>import("./pages/Sales/Offers"));
+const DirectPOS=lazy(()=>import("./pages/Sales/DirectPOS"));
+const DailySettlement=lazy(()=>import("./pages/Sales/DailySettlement"));
 const HRMSWorkspace=lazy(()=>import('./pages/HRMS/HRMSWorkspace').then(m=>({default:m.HRMSWorkspace})));
 const AccessAdmin=lazy(()=>import('./pages/HRMS/AccessAdmin').then(m=>({default:m.AccessAdmin})));
 const CategoryList=lazy(()=>import("./pages/Inventory/CategoryList").then(module=>({default:module.CategoryList})));
 const BottleSetup=lazy(()=>import("./pages/Workflow/InventoryWorkflow").then(module=>({default:module.BottleSetup})));
-const PercentageFormulations=lazy(()=>import("./pages/Workflow/InventoryWorkflow").then(module=>({default:module.PercentageFormulations})));
-const UnifiedProducts=lazy(()=>import("./pages/Workflow/InventoryWorkflow").then(module=>({default:module.UnifiedProducts})));
-const UnifiedProductForm=lazy(()=>import("./pages/Workflow/InventoryWorkflow").then(module=>({default:module.UnifiedProductForm})));
-const ProductWorkspace=lazy(()=>import("./pages/Workflow/InventoryWorkflow").then(module=>({default:module.ProductWorkspace})));
 import React,{Suspense,lazy} from "react";
 import {LoadingSkeleton} from "./components/common/StatCard";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -36,7 +39,6 @@ const FragranceMaster=lazy(()=>import("./pages/Production/FragranceMaster").then
 const StockTransferList=lazy(()=>import("./pages/Transfers/StockTransferList").then(module=>({default:module.StockTransferList})));
 const CreateStockTransfer=lazy(()=>import("./pages/Transfers/CreateStockTransfer").then(module=>({default:module.CreateStockTransfer})));
 const StockTransferDetail=lazy(()=>import("./pages/Transfers/StockTransferDetail").then(module=>({default:module.StockTransferDetail})));
-const POSView=lazy(()=>import("./pages/Sales/POSView").then(module=>({default:module.POSView})));
 const InvoiceList=lazy(()=>import("./pages/Sales/InvoiceList").then(module=>({default:module.InvoiceList})));
 const CustomerList=lazy(()=>import("./pages/Sales/CustomerList").then(module=>({default:module.CustomerList})));
 const AccountsDashboard=lazy(()=>import("./pages/Accounts/AccountsDashboard").then(module=>({default:module.AccountsDashboard})));
@@ -122,20 +124,20 @@ export default function App() {
             <Route path="inventory/fragrances" element={<FragranceMaster />} />
             <Route
               path="inventory/formulations"
-              element={<PercentageFormulations />}
+              element={<Navigate to="/inventory/products" replace />}
             />
-            <Route path="inventory/products" element={<UnifiedProducts />} />
+            <Route path="inventory/products" element={<PerfumeCatalogue />} />
             <Route
               path="inventory/products/create"
-              element={<UnifiedProductForm />}
+              element={<PerfumeForm />}
             />
             <Route
               path="inventory/products/:id/edit"
-              element={<UnifiedProductForm />}
+              element={<PerfumeForm />}
             />
             <Route
               path="inventory/products/:id"
-              element={<ProductWorkspace />}
+              element={<PerfumeDetails />}
             />
             <Route path="inventory/bottle-setup" element={<BottleSetup />} />
             <Route
@@ -169,7 +171,9 @@ export default function App() {
             <Route path="transfers/:id" element={<StockTransferDetail />} />
 
             {/* Sales */}
-            <Route path="sales/pos" element={<POSView />} />
+            <Route path="sales/pos" element={<DirectPOS />} />
+            <Route path="sales/settlement" element={<DailySettlement />} />
+            <Route path="sales/offers" element={<Offers />} />
             <Route path="sales/invoices" element={<InvoiceList />} />
             <Route path="sales/customers" element={<CustomerList />} />
 
@@ -186,6 +190,7 @@ export default function App() {
 
             {/* Settings */}
             <Route path="settings/profile" element={<ProfileView />} />
+            <Route path="settings/whatsapp" element={<WhatsAppIntegration />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />

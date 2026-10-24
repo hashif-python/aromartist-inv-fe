@@ -17,13 +17,18 @@ export const LowStockList = () => {
 
   const fetchLowStock = async () => {
     try {
-      const res = await inventoryApi.getRawMaterials();
+      // Use the backend's location-specific stock and recipe-aware reorder thresholds.
+      // The raw-material listing does not account for quantities needed per perfume.
+      const res = await inventoryApi.getLowStock();
       const filtered = (res.data || [])
-        .filter((rm) => rm.availableStock <= rm.minStock)
-        .map((rm) => ({
-          ...rm,
-          supplierName: getSupplierName(rm),
-          shortage: Math.max(0, rm.minStock - rm.availableStock),
+        .filter((row) => row.itemType === 'Raw Material')
+        .map((row) => ({
+          ...row,
+          availableStock: Number(row.available),
+          minStock: Number(row.minStock),
+          currentCost: Number(row.unitCost || 0),
+          shortage: Math.max(0, Number(row.minStock) - Number(row.available)),
+          supplierName: getSupplierName(row),
         }));
 
       setLowStockItems(filtered);
@@ -67,7 +72,7 @@ export const LowStockList = () => {
         <div>
           <div className="font-bold text-gray-900">{row.name}</div>
           <span className="text-xs uppercase font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-            {row.category}
+            {row.category} · {row.location}
           </span>
         </div>
       ),
@@ -89,7 +94,7 @@ export const LowStockList = () => {
       accessor: 'minStock',
       render: (row) => (
         <span className="font-semibold text-gray-700 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
-          {formatNumber(row.minStock)} {row.unit}
+          {formatNumber(row.minStock)} {row.unit}{Number(row.recipeMinStock) > Number(row.configuredMinStock) ? ' (recipe minimum)' : ''}
         </span>
       ),
     },
@@ -135,7 +140,7 @@ export const LowStockList = () => {
     <div className="space-y-6">
       <PageHeader
         title="Low Stock & Reorder Alerts"
-        subtitle="Live replenishment monitoring with reorder level, deficit shortage & vendor assignments"
+        subtitle="Location stock alerts based on reorder levels and minimum quantities required for perfume recipes"
       />
 
       {/* Overview Metric Cards */}

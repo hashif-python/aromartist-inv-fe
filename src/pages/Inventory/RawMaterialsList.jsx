@@ -1,6 +1,6 @@
 import {useAuth} from '../../context/AuthContext';
 import {apiClient as api} from '../../api/client';
-import { CreateRecordModal } from '../../components/common/CreateRecordModal';
+import { RawMaterialCreateForm } from './RawMaterialCreateForm';
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { DataTable } from '../../components/common/DataTable';
@@ -68,6 +68,8 @@ export const RawMaterialsList = () => {
     { header: 'Material Name', accessor: 'name', render: (row) => <span className="font-bold text-gray-900">{row.name}</span> },
     { header: 'Category', accessor: 'category', render: (row) => <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{row.category}</span> },
     { header: 'Unit', accessor: 'unit', render: (row) => <span className="text-xs text-gray-600 uppercase font-mono">{row.unit}</span> },
+    {header:'Packaging subtype',accessor:'packagingType'},
+    { header: 'Initial Qty', accessor: 'initialQty', render: (row) => <span>{formatNumber(row.initialQty || 0, row.unit==='pcs'?0:4)} {row.unit}</span> },
     { header: 'Current Cost', accessor: 'currentCost', render: (row) => <span className="font-semibold text-gray-900">{formatCurrency(row.currentCost)} / {row.unit}</span> },
     {
       header: 'Available Stock',
@@ -201,7 +203,7 @@ export const RawMaterialsList = () => {
       )}
 
       {locationError && <p role="alert" className="text-rose-700 my-3">Branch and warehouse quantities could not be loaded. Reload to retry.</p>}
-      {creating && <CreateRecordModal title="Add Raw Material" fields={[{name:'code',label:'Material Code',required:true,maxLength:60},{name:'name',label:'Material Name',required:true,maxLength:160},{name:'categoryRef',label:'Category',required:true,options:categories.filter(c=>c.status==='active').map(c=>({value:c.id,label:`${c.name} (${c.unit})`})),onChange:value=>({unit:categories.find(c=>c.id===value)?.unit||'',compatibleBottleSizes:[]})},{name:'compatibleBottleSizes',label:'Compatible Bottle Sizes (Pumps / Caps / Packaging)',multiple:true,visible:values=>categories.find(c=>c.id===values.categoryRef)?.categoryType==='Packaging',options:bottleSizes.filter(b=>b.status==='active').map(b=>({value:b.id,label:`${b.name} (${b.volumeMl} ml)`})),help:'Select one or more sizes. Leave empty for all sizes. Hold Ctrl to select multiple.'},{name:'unit',label:'Unit (from Category)',required:true,readOnly:true},{name:'currentCost',label:'Unit Cost',type:'number',min:0,step:'0.0001',required:true},{name:'minStock',label:'Minimum Stock',type:'number',min:0,step:'0.0001',required:true},{name:'description',label:'Description'},{name:'status',label:'Status',required:true,options:['active','inactive']},...locations.filter(l=>hasPermission('*')||hasPermission('finance.view')||[user?.branchId,user?.warehouseId].includes(l.id)).map(l=>({name:`opening_${l.id}`,label:`Opening quantity — ${l.kind}: ${l.name}`,type:'number',min:0,step:'0.0001',help:'Quantity in the category unit. Leave empty for zero. Recorded once as an opening stock movement.'}))]} defaults={{compatibleBottleSizes:[],status:'active',unit:'',currentCost:'0',minStock:'0'}} save={data => {if(locationsLoading)throw new Error('Wait for locations to load.');if(locationError)throw new Error('Locations failed to load. Reload this page before creating stock.');const values=data;const openingStocks=locations.filter(l=>Number(values[`opening_${l.id}`]||0)>0).map(l=>({locationId:l.id,quantity:values[`opening_${l.id}`]}));const master=Object.fromEntries(Object.entries(values).filter(([k])=>!k.startsWith('opening_')));return inventoryApi.createRawMaterial({...master,openingStocks});}} onClose={() => setCreating(false)} onSuccess={fetchMaterials} />}
+      {creating && <RawMaterialCreateForm categories={categories} bottleSizes={bottleSizes} locations={locations} locationsLoading={locationsLoading} locationError={locationError} onClose={()=>setCreating(false)} onSuccess={fetchMaterials}/> }
       {/* Confirm Delete Modal */}
       <ConfirmModal
         isOpen={!!deleteItem}

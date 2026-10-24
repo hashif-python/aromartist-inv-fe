@@ -31,6 +31,6 @@ export const AuthProvider = ({ children }) => {
   const refreshUser = async () => { const {data} = await authApi.refreshUser(); setUser(data); };
   const updateProfile = async (data) => { const res = await authApi.updateProfile(data); setUser(res.data); return res.data; };
   const switchRole = () => toast.info('Your role is assigned by an administrator. Sign in with the appropriate account.');
-  return <AuthContext.Provider value={{ user, organization: user?.organization || '', role: user?.role || 'staff', permissions: user?.permissions || [], branch: user?.branch || '', warehouse: user?.warehouse || '', loading, initializing, login, logout, refreshUser, switchRole, updateProfile, hasPermission: (p) => checkPermission(user,p), hasRole: (r) => checkRole(user,r) }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, storeSetup:user?.storeSetup||{}, singleLocationMode:!!user?.storeSetup?.singleLocationMode, organization: user?.organization || '', role: user?.role || 'staff', permissions: user?.permissions || [], branch: user?.branch || '', warehouse: user?.warehouse || '', loading, initializing, login, logout, refreshUser, switchRole, updateProfile, hasPermission: (p) => checkPermission(user,p), hasRole: (r) => checkRole(user,r) }}>{children}</AuthContext.Provider>;
 };
 export const useAuth = () => { const ctx = useContext(AuthContext); if (!ctx) throw new Error('AuthProvider is required'); return ctx; };

@@ -74,6 +74,7 @@ export const BottleSizeMaster = () => {
   };
 
   const columns = [
+    ...[['Cap','capMaterialRef'],['Pump / Atomizer','pumpMaterialRef'],['Label','labelMaterialRef'],['Separate Dip Tube','dipTubeMaterialRef']].map(([header,accessor])=>({header,accessor,render:row=>getMaterialLabel(row[accessor])})),
     {
       header: 'Size Name',
       accessor: 'name',
@@ -154,7 +155,7 @@ export const BottleSizeMaster = () => {
       <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start space-x-3">
         <Info className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />
         <div>
-          <strong className="font-bold">Master data:</strong> Maintain bottle volumes and packaging references here. Saved sizes become available in formulations and product variants.
+          <strong className="font-bold">Master data:</strong> Maintain bottle volumes and packaging references here. Link bottle, cap, pump and label stock here; add a dip tube only when stocked separately. Products use this packaging set at POS checkout.
         </div>
       </div>
 

@@ -245,7 +245,7 @@ export const CreatePurchaseOrder = () => {
                   <th className="p-3">Material Item</th>
                   <th className="p-3 w-28">Quantity</th>
                   <th className="p-3 w-20">Unit</th>
-                  <th className="p-3 w-28">Rate (AED)</th>
+                  <th className="p-3 w-28">Rate (INR)</th>
                   <th className="p-3 w-24">Discount</th>
                   <th className="p-3 w-24">Tax</th>
                   <th className="p-3 w-32 text-right">Line Total</th>

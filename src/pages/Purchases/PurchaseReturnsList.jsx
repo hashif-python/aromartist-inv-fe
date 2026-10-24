@@ -354,7 +354,7 @@ export const PurchaseReturnsList = () => {
                   ]}
                 />
                 <NumberInput
-                  label="Unit Cost (AED)"
+                  label="Unit Cost (INR)"
                   value={unitCost}
                   onChange={(e) => setUnitCost(Number(e.target.value))}
                   required

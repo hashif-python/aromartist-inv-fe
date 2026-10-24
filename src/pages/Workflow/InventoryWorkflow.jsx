@@ -14,7 +14,7 @@ import {ErrorState,LoadingSkeleton} from "../../components/common/StatCard";
 import {Can} from '../../components/common/Can';
 import { useAuth } from "../../context/AuthContext";
 import { BottleSizeMaster } from "../Production/BottleSizeMaster";
-import { ConcentrationMaster } from "../Production/ConcentrationMaster";
+
 const box = "erp-panel p-5 space-y-4";
 const button =
   "erp-primary";
@@ -145,27 +145,10 @@ function RecipeTable({ rows, multiplier = 1, availability }) {
   );
 }
 function Breadcrumb() {
-  return <p className="text-xs text-gray-500">Inventory / <Link to="/inventory/raw-materials">Raw Materials</Link> · <Link to="/inventory/fragrances">Fragrances</Link> · <Link to="/inventory/formulations">Formulations</Link> · <Link to="/inventory/products">Products &amp; Variants</Link></p>;
+  return <p className="text-xs text-gray-500">Inventory / <Link to="/inventory/raw-materials">Raw Materials</Link> · <Link to="/inventory/fragrances">Fragrances</Link> · <Link to="/inventory/products">Products &amp; Formulations</Link></p>;
 }
 
-export function BottleSetup() {
-  const [tab, setTab] = useState("sizes");
-  return (
-    <div className="space-y-4">
-      <Breadcrumb />
-      <h1 className="text-2xl font-bold">Bottle Setup</h1>
-      <div className="erp-tabs" role="tablist" aria-label="Bottle setup">
-        <button role="tab" aria-selected={tab==="sizes"} className={button} onClick={() => setTab("sizes")}>
-          Bottle Sizes
-        </button>
-        <button role="tab" aria-selected={tab==="concentrations"} className={button} onClick={() => setTab("concentrations")}>
-          Concentrations
-        </button>
-      </div>
-      {tab === "sizes" ? <BottleSizeMaster /> : <ConcentrationMaster />}
-    </div>
-  );
-}
+export function BottleSetup(){return <div className="space-y-4"><Breadcrumb/><h1 className="text-2xl font-bold">Bottle & Packaging Setup</h1><p>Configure bottle volume, packaging and the selling-price multiplier/surcharge. Fragrance types and their prices are configured under Fragrances or raw oils.</p><BottleSizeMaster/></div>;}
 export function PercentageFormulations() {
   const [params] = useSearchParams();
   const [formulas, setFormulas] = useState([]);
@@ -211,6 +194,8 @@ export function PercentageFormulations() {
   const save = async (e) => {
     e.preventDefault();
     if (busy) return;
+    const selected=form.percentageIngredients.map(row=>row.materialId);
+    if(new Set(selected).size!==selected.length){toast.error("Each ingredient can appear only once. Combine its percentages into one row.");return;}
     setBusy(true);
     try {
       const response = await api[edit ? "put" : "post"](
@@ -295,6 +280,7 @@ export function PercentageFormulations() {
               items={statuses}
             />
           </div>
+          <p className="text-sm text-gray-500">Each ingredient can be selected once. Combine percentages in one row when using the same material.</p>
           {form.percentageIngredients.map((r, i) => (
             <div key={i} className="grid md:grid-cols-4 gap-3 items-end">
               <Select
@@ -327,7 +313,8 @@ export function PercentageFormulations() {
                         r.type ||
                         "Perfume Oil") &&
                     m.unit === "ml" &&
-                    m.status === "active",
+                    m.status === "active" &&
+                    !form.percentageIngredients.some((other, index) => index !== i && other.materialId === m.id),
                 )}
                 onChange={(v) =>
                   change(
@@ -532,7 +519,7 @@ export function UnifiedProducts() {
     <div className="space-y-5">
       <Breadcrumb />
       <div className="flex justify-between">
-        <h1 className="text-2xl font-bold">Products &amp; Variants</h1>
+        <h1 className="text-2xl font-bold">Products &amp; Formulations</h1>
         {hasPermission("inventory.product.create") && (
           <Link to="/inventory/products/create" className={button}>
             Create Product &amp; Variants
@@ -666,7 +653,15 @@ export function UnifiedProductForm() {
           });
         }
         if (cancelled) return;
-        setCatalog(Object.fromEntries(urls.map((x, i) => [x, data[i].data])));
+        const loaded=Object.fromEntries(urls.map((x, i) => [x, data[i].data]));
+        if(!id){
+          const selected=loaded.formulas.find(f=>f.id===params.get("formulaId")&&f.percentageRecipe&&f.status==="active");
+          const fragrance=loaded.fragrances.find(f=>f.id===(selected?.fragranceId||params.get("fragranceId")));
+          const sizes=loaded["bottle-sizes"].filter(b=>b.status==="active");
+          const concentrations=loaded.concentrations.filter(c=>c.status==="active");
+          setForm(current=>({...current,name:current.name||fragrance?.name||selected?.name||"",fragranceId:selected?.fragranceId||current.fragranceId,formulaId:selected?.id||current.formulaId,variants:current.variants.map(v=>({...v,bottleSizeId:v.bottleSizeId||(sizes.length===1?sizes[0].id:""),concentrationId:v.concentrationId||(concentrations.length===1?concentrations[0].id:"")}))}));
+        }
+        setCatalog(loaded);
       } catch {setLoadError(true)}
     })();
     return () => {
@@ -754,7 +749,11 @@ export function UnifiedProductForm() {
                   f.status === "active",
               )
               .map((f) => ({ ...f, name: `${f.name} ${f.version}` }))}
-            onChange={(v) => change("formulaId", v)}
+            onChange={(v) => {
+              const chosen=catalog.formulas.find(f=>f.id===v);
+              const fragrance=catalog.fragrances.find(f=>f.id===chosen?.fragranceId);
+              setDirty(true);setForm(current=>({...current,formulaId:v,fragranceId:chosen?.fragranceId||current.fragranceId,name:current.name||fragrance?.name||chosen?.name||""}));
+            }}
           />
           <Text
             hidden={step!==0} label="Description"

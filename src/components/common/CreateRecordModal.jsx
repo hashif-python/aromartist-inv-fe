@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import {useAuth} from '../../context/AuthContext';
+import {storeDefault} from '../../utils/storeDefaults';
+import React, { useState,useEffect } from 'react';
 import { toast } from 'sonner';
 export const CreateRecordModal = ({ title, fields, defaults = {}, save, onClose, onSuccess }) => {
+  const {storeSetup}=useAuth();const automaticLocations=Object.fromEntries(fields.filter(f=>f.options).map(f=>[f.name,storeDefault(`${f.name} ${f.label}`,f.options,storeSetup)]).filter(([,value])=>value!==undefined));const locationKey=JSON.stringify(automaticLocations);
   const auto=field=>['code','sku','billNumber','employeeCode','reference'].includes(field.name);
   const [values, setValues] = useState(defaults);
+  useEffect(()=>{setValues(v=>({...v,...automaticLocations}));},[locationKey]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const submit = async (e) => {
@@ -18,7 +22,7 @@ export const CreateRecordModal = ({ title, fields, defaults = {}, save, onClose,
   return <div className="erp-dialog-backdrop" role="dialog" aria-modal="true" aria-label={title}>
     <form onSubmit={submit} className="erp-dialog space-y-4">
       <h2 className="text-lg font-bold">{title}</h2>
-      {fields.filter(field => !field.visible || field.visible(values)).map(field => <label key={field.name} className="block text-xs font-semibold text-gray-700">{field.label}{field.required && !auto(field) && ' *'}
+      {fields.filter(field => automaticLocations[field.name]===undefined&&(!field.visible || field.visible(values))).map(field => <label key={field.name} className="block text-xs font-semibold text-gray-700">{field.label}{field.required && !auto(field) && ' *'}
         {field.options ? <select multiple={field.multiple} required={field.required} value={values[field.name] ?? (field.multiple ? [] : '')} onChange={e => {const value=field.multiple ? Array.from(e.target.selectedOptions,o=>o.value) : e.target.value;setValues({...values,[field.name]:value,...(field.onChange?.(value,values)||{})})}} className="erp-input mt-2">{!field.multiple && <option value="">Select...</option>}{field.options.map(option => <option key={option.value ?? option} value={option.value ?? option}>{option.label ?? option}</option>)}</select> : <input placeholder={auto(field)?'Auto-generated on Save':undefined} required={field.required&&!auto(field)} readOnly={field.readOnly||auto(field)} type={field.type || 'text'} min={field.min} step={field.step} maxLength={field.maxLength} value={values[field.name] ?? ''} onChange={e => setValues({...values,[field.name]:e.target.value,...(field.onChange?.(e.target.value,values)||{})})} className="erp-input mt-2"/>}
         {field.help && <span className="block font-normal text-gray-500 mt-1">{field.help}</span>}
       </label>)}

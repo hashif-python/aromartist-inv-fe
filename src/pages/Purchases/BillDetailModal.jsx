@@ -169,7 +169,7 @@ export const BillDetailModal = ({ isOpen, bill, onClose, onUpdate }) => {
 
                 <div className="grid grid-cols-3 gap-3">
                   <NumberInput
-                    label="Payment Amount (AED)"
+                    label="Payment Amount (INR)"
                     placeholder={`e.g. ${currentBill.balance}`}
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}

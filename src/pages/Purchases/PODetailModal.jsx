@@ -247,7 +247,7 @@ export const PODetailModal = ({ isOpen, po, onClose, onUpdate, initialEdit = fal
                       <th className="p-2.5">Material</th>
                       <th className="p-2.5 w-24">Quantity</th>
                       <th className="p-2.5 w-20">Unit</th>
-                      <th className="p-2.5 w-24">Rate (AED)</th>
+                      <th className="p-2.5 w-24">Rate (INR)</th>
                       <th className="p-2.5 w-24">Discount</th>
                       <th className="p-2.5 w-24">Tax</th>
                       <th className="p-2.5 w-28 text-right">Line Total</th>
@@ -444,10 +444,10 @@ export const PODetailModal = ({ isOpen, po, onClose, onUpdate, initialEdit = fal
                             {formatCurrency(item.rate)}
                           </td>
                           <td className="p-3 text-right text-rose-600 font-semibold">
-                            {item.discount > 0 ? `-${formatCurrency(item.discount)}` : 'AED 0.00'}
+                            {item.discount > 0 ? `-${formatCurrency(item.discount)}` : 'INR 0.00'}
                           </td>
                           <td className="p-3 text-right text-gray-700">
-                            {item.tax > 0 ? `+${formatCurrency(item.tax)}` : 'AED 0.00'}
+                            {item.tax > 0 ? `+${formatCurrency(item.tax)}` : 'INR 0.00'}
                           </td>
                           <td className="p-3 text-right font-bold text-gray-900">
                             {formatCurrency(lineTotal)}

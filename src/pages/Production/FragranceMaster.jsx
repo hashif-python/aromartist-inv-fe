@@ -72,15 +72,6 @@ export const FragranceMaster = () => {
       ),
     },
     {
-      header: 'Olfactory Category',
-      accessor: 'category',
-      render: (row) => (
-        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-[var(--primary)] border border-amber-200">
-          {row.category}
-        </span>
-      ),
-    },
-    {
       header: 'Status',
       accessor: 'status',
       render: (row) => <StatusBadge status={row.status || 'active'} />,
@@ -89,7 +80,7 @@ export const FragranceMaster = () => {
       header: 'Actions',
       render: (row) => (
         <div className="flex items-center space-x-1.5 justify-end">
-          <Can permission={["inventory.formulation.create","production.formulation"]}><Link className="text-xs text-amber-700 font-bold" to={`/inventory/formulations?fragranceId=${row.id}`}>Create Formulation</Link></Can>
+          <Can permission={["inventory.formulation.create","production.formulation"]}><Link className="text-xs text-amber-700 font-bold" to={`/inventory/products/create?fragranceId=${row.id}`}>Create Product</Link></Can>
           <button
             onClick={() => setViewFragrance(row)}
             className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
@@ -123,7 +114,7 @@ export const FragranceMaster = () => {
     <div className="space-y-6">
       <PageHeader
         title="Fragrance Master"
-        subtitle="Fragrance profiles, olfactory accords and raw perfume oil bindings"
+        subtitle="Fragrance profiles, pricing and raw perfume oil bindings"
         primaryAction={
           <button
             onClick={() => setIsAddOpen(true)}
@@ -138,7 +129,7 @@ export const FragranceMaster = () => {
       <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start space-x-3">
         <Info className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />
         <div>
-          <strong className="font-bold">Data Architecture Rule:</strong> Fragrance records are strictly independent of bottle size and concentration (e.g., "Aventus Style" is a master fragrance; specific 50ml EDP combinations are managed under Product Variants and Formulations).
+          <strong className="font-bold">Data Architecture Rule:</strong> Configure fragrance selling prices by type for a 100 ml perfume. Product formulations combine oils and solvents; the highest selected fragrance type price supplies the base price before the bottle rule.
         </div>
       </div>
 
@@ -187,10 +178,6 @@ export const FragranceMaster = () => {
 
             <div className="space-y-3">
               <div className="flex justify-between py-1 border-b border-gray-200">
-                <span className="text-gray-500">Category:</span>
-                <span className="font-bold text-amber-700">{viewFragrance.category}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-200">
                 <span className="text-gray-500">Inspiration / Brand:</span>
                 <span className="font-bold text-gray-900">{viewFragrance.refBrand || 'In-House Original'}</span>
               </div>
@@ -200,7 +187,7 @@ export const FragranceMaster = () => {
               </div>
               {viewFragrance.notes && (
                 <div className="pt-1">
-                  <span className="text-gray-500 block mb-1">Olfactory Accords & Notes:</span>
+                  <span className="text-gray-500 block mb-1">Scent Notes:</span>
                   <p className="p-2.5 bg-gray-50 rounded-xl text-gray-700 italic border border-gray-200/60 leading-relaxed">
                     {viewFragrance.notes}
                   </p>

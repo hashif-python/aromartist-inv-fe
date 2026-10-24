@@ -198,7 +198,7 @@ export const ReturnDetailModal = ({ isOpen, returnItem, onClose, onUpdate, initi
                 />
 
                 <NumberInput disabled
-                  label="Unit Cost (AED)"
+                  label="Unit Cost (INR)"
                   value={unitCost}
                   onChange={(e) => setUnitCost(Number(e.target.value))}
                   required

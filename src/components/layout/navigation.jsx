@@ -18,6 +18,7 @@ import {
   Building2,
   TrendingUp,
   Receipt,
+  MessageCircle,
   ArrowDownLeft,
   ArrowUpRight,
   } from "lucide-react";
@@ -63,9 +64,8 @@ export const NAV_GROUPS = [
       { label: "Categories", path: "/inventory/categories", icon: Boxes, permission: "inventory.view" },
       { label: "Raw Materials", path: "/inventory/raw-materials", icon: Boxes, permission: "inventory.view" },
       { label: "Fragrances", path: "/inventory/fragrances", icon: FlaskConical, permission: "inventory.view" },
-      { label: "Formulations", path: "/inventory/formulations", icon: FlaskConical, permission: "inventory.view" },
-      { label: "Products & Variants", path: "/inventory/products", icon: PackageCheck, permission: "inventory.view" },
       { label: "Bottle Setup", path: "/inventory/bottle-setup", icon: FlaskConical, permission: "production.view" },
+      { label: "Products & Formulations", path: "/inventory/products", icon: PackageCheck, permission: "inventory.view" },
       { label: "Stock Overview", path: "/inventory/overview", icon: Boxes, permission: "inventory.view" },
       { label: "Stock Adjustments", path: "/inventory/adjustments", icon: SlidersHorizontal, permission: "inventory.adjust" },
       { label: "Stock Movements", path: "/inventory/movements", icon: Boxes, permission: "inventory.view" },
@@ -116,6 +116,12 @@ export const NAV_GROUPS = [
       {
         label: "POS Terminal",
         path: "/sales/pos",
+        icon: ShoppingCart,
+        permission: "sales.pos",
+      },
+      {
+        label: "Daily Settlement",
+        path: "/sales/settlement",
         icon: ShoppingCart,
         permission: "sales.pos",
       },
@@ -188,6 +194,7 @@ export const NAV_GROUPS = [
   {
     group: "Settings",
     items: [
+      {label: "WhatsApp Integration", path: "/settings/whatsapp", icon: MessageCircle, permission: "*"},
       {
         label: "Profile",
         path: "/settings/profile",
@@ -198,12 +205,12 @@ export const NAV_GROUPS = [
   },
 ];
 
-const administration={group:'Administration',items:[...NAV_GROUPS.find(g=>g.group==='Dashboard').items,...NAV_GROUPS.find(g=>g.group==='Branches').items,...NAV_GROUPS.find(g=>g.group==='Warehouses').items,...NAV_GROUPS.find(g=>g.group==='Settings').items]};
+const administration={group:'Administration',items:[...NAV_GROUPS.find(g=>g.group==='Dashboard').items,...NAV_GROUPS.find(g=>g.group==='Warehouses').items,...NAV_GROUPS.find(g=>g.group==='Branches').items,...NAV_GROUPS.find(g=>g.group==='Settings').items]};
 const routePermissions={
 '/warehouses':['administration.warehouse.view','warehouse.view'], '/branches':['administration.branch.view','branch.view'],
 '/inventory/categories':['inventory.category.view','inventory.view'],'/inventory/raw-materials':['inventory.raw_material.view','inventory.view'],'/inventory/fragrances':['inventory.fragrance.view','inventory.view'],'/inventory/formulations':['inventory.formulation.view','inventory.view'],'/inventory/products':['inventory.product.view','inventory.view'],'/inventory/bottle-setup':['inventory.bottle_setup.view','production.view'],'/inventory/overview':['inventory.stock.view','inventory.view'],'/inventory/movements':['inventory.movement.view','inventory.view'],'/inventory/adjustments':['inventory.adjustment.view','inventory.adjust'],'/inventory/wastage':['inventory.wastage.view','inventory.wastage'],'/inventory/low-stock':['inventory.stock.view','inventory.view'],'/transfers':['inventory.transfer.view','transfers.view'],
 '/suppliers':['purchases.supplier.view','purchases.view'],'/purchases/orders':['purchases.order.view','purchases.view'],'/purchases/grn':['purchases.grn.view','purchases.grn'],'/purchases/bills':['purchases.bill.view','purchases.view','purchases.bills'],'/purchases/returns':['purchases.return.view','purchases.returns'],
-'/sales/pos':['sales.invoice.checkout','sales.pos'],'/sales/invoices':['sales.invoice.view','sales.view'],'/sales/customers':['sales.customer.view','customers.manage'],
+'/sales/settlement':['sales.invoice.checkout','sales.pos'],'/sales/pos':['sales.invoice.checkout','sales.pos'],'/sales/invoices':['sales.invoice.view','sales.view'],'/sales/customers':['sales.customer.view','customers.manage'],
 '/accounts/dashboard':['accounting.ledger.view','finance.view'],'/accounts/cash-bank':['accounting.ledger.view','finance.view'],'/accounts/income':['accounting.ledger.view','finance.view'],'/accounts/expenses':['accounting.expense.view','finance.view','finance.expenses'],'/accounts/receivables':['sales.invoice.view','finance.view'],'/accounts/payables':['purchases.bill.view','finance.view'],'/reports':['reports.view','reports.finance','reports.branch']};
 for(const group of NAV_GROUPS)for(const item of group.items)if(routePermissions[item.path])item.permission=routePermissions[item.path];
 for(const item of administration.items)if(routePermissions[item.path])item.permission=routePermissions[item.path];

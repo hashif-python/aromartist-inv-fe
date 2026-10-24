@@ -1,3 +1,4 @@
+import {useAuth} from '../../context/AuthContext';
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { DataTable } from '../../components/common/DataTable';
@@ -12,6 +13,7 @@ import { Filter, Warehouse, Store, AlertCircle, ArrowUpRight, ArrowDownLeft } fr
 import { toast } from 'sonner';
 
 export const StockOverview = () => {
+  const {singleLocationMode}=useAuth();
   const [stockList, setStockList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,8 +40,8 @@ export const StockOverview = () => {
 
   // Filtered dataset
   const filteredData = stockList.filter((item) => {
-    const matchWH = warehouseFilter === 'All Warehouses' || item.location === warehouseFilter;
-    const matchBR = branchFilter === 'All Branches' || item.location === branchFilter;
+    const matchWH = singleLocationMode || warehouseFilter === 'All Warehouses' || item.location === warehouseFilter;
+    const matchBR = singleLocationMode || branchFilter === 'All Branches' || item.location === branchFilter;
     const matchType =
       materialTypeFilter === 'All Types'
         ? true
@@ -138,6 +140,7 @@ export const StockOverview = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {!singleLocationMode&&<>
           <SelectInput
             label="Filter by Warehouse"
             value={warehouseFilter}
@@ -158,6 +161,7 @@ export const StockOverview = () => {
             options={['All Branches', ...new Set(stockList.filter(x => x.locationType === 'Branch').map(x => x.location))]}
           />
 
+          </>}
           <SelectInput
             label="Filter by Material / Item Type"
             value={materialTypeFilter}

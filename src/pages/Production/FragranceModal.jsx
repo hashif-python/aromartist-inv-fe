@@ -1,3 +1,4 @@
+import {FragrancePriceFields} from '../../components/Perfume/FragrancePriceFields';
 import React, { useState, useEffect } from 'react';
 import { TextInput, SelectInput, TextArea } from '../../components/forms/FormControls';
 import { fragranceApi } from '../../api/fragranceApi';
@@ -11,9 +12,9 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [refBrand, setRefBrand] = useState('');
-  const [category, setCategory] = useState('Fresh Woody');
   const [perfumeOilId, setPerfumeOilId] = useState('');
   const [status, setStatus] = useState('active');
+  const [pricesByType,setPrices]=useState({});
   const [notes, setNotes] = useState('');
 
   const [perfumeOils, setPerfumeOils] = useState([]);
@@ -26,18 +27,16 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
         setCode(fragrance.code || '');
         setName(fragrance.name || '');
         setRefBrand(fragrance.refBrand || '');
-        setCategory(fragrance.category || 'Fresh Woody');
         setPerfumeOilId(fragrance.perfumeOilId || '');
         setStatus(fragrance.status || 'active');
-        setNotes(fragrance.notes || '');
+        setNotes(fragrance.notes || '');setPrices(fragrance.pricesByType||{});
       } else {
         setCode('');
         setName('');
         setRefBrand('');
-        setCategory('Fresh Woody');
         setPerfumeOilId('');
         setStatus('active');
-        setNotes('');
+        setNotes('');setPrices({});
       }
     }
   }, [isOpen, fragrance]);
@@ -72,10 +71,10 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
         code: code.trim(),
         name: name.trim(),
         refBrand: refBrand.trim(),
-        category,
         perfumeOilId,
         status,
         notes: notes.trim(),
+        pricesByType,
       };
 
       if (isEdit) {
@@ -87,16 +86,16 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
       }
 
       onSuccess();
-    } catch {
-      toast.error(isEdit ? 'Failed to update fragrance profile' : 'Failed to create fragrance profile');
+    } catch (err) {
+      toast.error(err.response?.data ? JSON.stringify(err.response.data) : isEdit ? 'Failed to update fragrance profile' : 'Failed to create fragrance profile');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-      <div className="erp-panel   max-w-lg w-full p-6  space-y-4 ">
+    <><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+      <div className="erp-panel   max-w-lg w-full max-h-[90vh] overflow-y-auto p-6  space-y-4 ">
         <div className="flex items-center justify-between pb-3 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <div className="p-2 bg-amber-50 rounded-xl text-[var(--primary)]">
@@ -138,24 +137,8 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
               onChange={(e) => setRefBrand(e.target.value)}
             />
 
-            <SelectInput
-              label="Olfactory Family / Category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              options={[
-                { label: 'Fresh Woody', value: 'Fresh Woody' },
-                { label: 'Amber Floral', value: 'Amber Floral' },
-                { label: 'Fresh Spicy', value: 'Fresh Spicy' },
-                { label: 'Woody Oriental', value: 'Woody Oriental' },
-                { label: 'Citrus Aromatic', value: 'Citrus Aromatic' },
-                { label: 'Gourmand Floral', value: 'Gourmand Floral' },
-                { label: 'Other', value: 'Other' },
-              ]}
-              required
-            />
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
+
             <SelectInput
               label="Primary Perfume Oil Binding"
               value={perfumeOilId}
@@ -182,6 +165,8 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
             rows={3}
           />
 
+          <FragrancePriceFields value={pricesByType} onChange={setPrices} fallback={perfumeOils.find(o=>o.id===perfumeOilId)?.fragrancePrices||{}}/>
+
           <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200">
             <button
               type="button"
@@ -201,6 +186,6 @@ export const FragranceModal = ({ isOpen, fragrance, onClose, onSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div></>
   );
 };
