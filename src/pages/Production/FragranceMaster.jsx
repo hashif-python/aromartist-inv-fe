@@ -129,7 +129,7 @@ export const FragranceMaster = () => {
       <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start space-x-3">
         <Info className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />
         <div>
-          <strong className="font-bold">Data Architecture Rule:</strong> Configure fragrance selling prices by type for a 100 ml perfume. Product formulations combine oils and solvents; the highest selected fragrance type price supplies the base price before the bottle rule.
+          <strong className="font-bold">Data Architecture Rule:</strong> Configure selling prices for each fixed fragrance concentration and bottle setup. Blends use the highest configured price for the selected bottle.
         </div>
       </div>
 

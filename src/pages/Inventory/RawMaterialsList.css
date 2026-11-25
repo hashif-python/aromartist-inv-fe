@@ -1,0 +1,33 @@
+/* Scoped to Raw Materials; other DataTable consumers are unchanged. */
+.raw-materials-page { width:100%; min-width:0; }
+.raw-materials-page .erp-page-header { align-items:center; margin-bottom:20px; }
+.raw-materials-page .erp-header-actions { margin-left:auto; justify-content:flex-end; padding-top:0; }
+.raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child {
+  display:grid; grid-template-columns:minmax(180px,1.2fr) minmax(300px,1.6fr) auto;
+  align-items:center; gap:12px; padding:16px;
+}
+.raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child > div { width:100%; min-width:0; }
+.raw-material-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
+.raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child .erp-input { height:42px; min-height:42px; width:100%; min-width:0; }
+.raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child > span { white-space:nowrap; text-align:right; }
+.raw-materials-page .erp-table { table-layout:fixed; min-width:620px; }
+.raw-materials-page .erp-table th:nth-child(1) { width:40%; }
+.raw-materials-page .erp-table th:nth-child(2) { width:25%; }
+.raw-materials-page .erp-table th:nth-child(3) { width:18%; }
+.raw-materials-page .erp-table th:nth-child(4) { width:17%; }
+.raw-materials-page .erp-table th,.raw-materials-page .erp-table td { padding:10px 16px; vertical-align:middle; }
+.raw-materials-page .erp-table td:first-child { overflow-wrap:anywhere; }
+.raw-materials-page .erp-table th:last-child,.raw-materials-page .erp-table td:last-child { text-align:right; }
+.raw-materials-page .raw-material-actions button { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; flex:none; }
+.raw-materials-page .erp-table-scroll { max-height:none; overflow-x:auto; }
+.raw-materials-page .erp-table-footer { padding:12px 16px; }
+@media(max-width:1000px) {
+ .raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child { grid-template-columns:minmax(0,1fr) minmax(0,1.5fr); }
+ .raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child > span { grid-column:1/-1; }
+}
+@media(max-width:700px) {
+ .raw-materials-page .erp-panel:has(> .erp-table-scroll) > div:first-child { grid-template-columns:minmax(0,1fr); }
+ .raw-materials-page .erp-header-actions { width:100%; }
+ .raw-materials-page .erp-table th,.raw-materials-page .erp-table td { padding:9px 12px; }
+}
+@media(max-width:420px) { .raw-material-filters { grid-template-columns:minmax(0,1fr); } }

@@ -76,12 +76,7 @@ export const BottleSizeMaster = () => {
   const columns = [
     ...[['Cap','capMaterialRef'],['Pump / Atomizer','pumpMaterialRef'],['Label','labelMaterialRef'],['Separate Dip Tube','dipTubeMaterialRef']].map(([header,accessor])=>({header,accessor,render:row=>getMaterialLabel(row[accessor])})),
     {
-      header: 'Size Name',
-      accessor: 'name',
-      render: (row) => <span className="font-bold text-gray-900">{row.name}</span>,
-    },
-    {
-      header: 'Volume (ml)',
+      header: 'Bottle Capacity (ml)',
       accessor: 'volumeMl',
       render: (row) => (
         <span className="font-bold text-[var(--primary)] font-mono bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
@@ -204,7 +199,7 @@ export const BottleSizeMaster = () => {
 
             <div className="space-y-3">
               <div className="flex justify-between py-1 border-b border-gray-200">
-                <span className="text-gray-500">Capacity Volume:</span>
+                <span className="text-gray-500">Bottle Capacity:</span>
                 <span className="font-bold text-[var(--primary)]">{viewSize.volumeMl} ml</span>
               </div>
               <div className="flex justify-between py-1 border-b border-gray-200">

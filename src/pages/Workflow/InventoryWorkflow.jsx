@@ -1,4 +1,4 @@
-const fitsBottle = (material, sizeId) => !!material && (!(material.compatibleBottleSizes || []).length || material.compatibleBottleSizes.includes(sizeId));
+const fitsBottle = (material, sizeId) => !!material;
 
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -536,7 +536,7 @@ export function UnifiedProducts() {
               <strong>{p.name}</strong>
               <p className="text-sm">
                 {p.code} · {p.variantsCount} variants · Stock{" "}
-                {Number(p.finishedStock)} · {p.status}
+                {Number(p.availableStock ?? p.finishedStock)} · {p.status}
               </p>
             </div>
             <div className="flex gap-2">
@@ -1086,7 +1086,7 @@ export function ProductWorkspace() {
           <p>Fragrance: {data.product.fragranceName}</p>
           <p>
             {data.variants.length} variants · Available stock:{" "}
-            {Number(data.product.finishedStock)} bottles
+            {Number(data.product.availableStock ?? data.product.finishedStock)} bottles
           </p>
         </section>
       )}

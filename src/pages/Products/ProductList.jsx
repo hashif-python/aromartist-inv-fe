@@ -63,16 +63,16 @@ export const ProductList = () => {
       accessor: 'variantsCount',
       render: (row) => (
         <span className="font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 text-xs">
-          {row.variantsCount || 3} SKUs
+          {row.variantsCount ?? 0} SKUs
         </span>
       ),
     },
     {
-      header: 'Finished Stock',
-      accessor: 'finishedStock',
+      header: 'Available Stock',
+      accessor: 'availableStock',
       render: (row) => (
         <span className="font-bold text-gray-900">
-          {row.finishedStock ?? 0} bottles
+          {row.availableStock ?? row.finishedStock ?? 0} bottles {row.directBlend && <span className="text-xs text-gray-500">(producible)</span>}
         </span>
       ),
     },
@@ -181,11 +181,11 @@ export const ProductList = () => {
               </div>
               <div className="flex justify-between py-1 border-b border-gray-200">
                 <span className="text-gray-500 font-medium">Active SKUs:</span>
-                <span className="font-bold text-amber-700">{viewProduct.variantsCount || 3} SKUs</span>
+                <span className="font-bold text-amber-700">{viewProduct.variantsCount ?? 0} SKUs</span>
               </div>
               <div className="flex justify-between py-1 border-b border-gray-200">
-                <span className="text-gray-500 font-medium">Finished Stock:</span>
-                <span className="font-bold text-gray-900">{viewProduct.finishedStock ?? 0} bottles</span>
+                <span className="text-gray-500 font-medium">Available Stock:</span>
+                <span className="font-bold text-gray-900">{viewProduct.availableStock ?? viewProduct.finishedStock ?? 0} bottles {viewProduct.directBlend ? "(producible)" : ""}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-gray-200">
                 <span className="text-gray-500 font-medium">Status:</span>

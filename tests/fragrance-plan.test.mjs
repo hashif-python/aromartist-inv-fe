@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {deriveFragrancePlan,splitOil} from '../src/utils/fragrancePlan.js';
+const fragrance=(id,extra={})=>({id,name:id,perfumeOilId:'oil-'+id,defaultType:'EDP',defaultOilPercentage:'20',solventRecipe:[{materialId:'solvent',share:'100'}],defaultBottleSize:'b50',...extra});
+const workspace={fragrances:[fragrance('Rose'),fragrance('Oud'),fragrance('Musk'),fragrance('Amber')],materials:[{id:'solvent',name:'Solvent'}],bottleSizes:[50,100].map(v=>({id:'b'+v,volumeMl:String(v),configured:true}))};
+const selections=[{fragranceId:'Rose',percentage:'12'},{fragranceId:'Oud',percentage:'8'}];
+test('bottle volume updates ml while keeping oil percentages',()=>{for(const [b,expected] of [['b50',[6,4,40]],['b100',[12,8,80]]]){const p=deriveFragrancePlan(workspace,selections,b);assert.deepEqual(p.errors,[]);assert.deepEqual(p.rows.map(r=>r.requiredMl),expected);}});
+test('single fragrance fills entire configured oil portion',()=>{const p=deriveFragrancePlan(workspace,[{fragranceId:'Rose',percentage:1}],'');assert.deepEqual(p.rows.map(r=>r.percentage),[20,80]);});
+test('three-way default split totals exactly 20%',()=>{assert.equal(splitOil(20,3).reduce((s,x)=>s+Math.round(Number(x)*10000),0),200000);});
+test('wrong oil total, duplicates and fourth fragrance are invalid',()=>{for(const rows of [[{fragranceId:'Rose',percentage:20},{fragranceId:'Oud',percentage:20}],[selections[0],selections[0]],[...selections,{fragranceId:'Musk',percentage:1},{fragranceId:'Amber',percentage:1}]])assert(deriveFragrancePlan(workspace,rows,'').errors.length);});
+test('missing defaults and conflicting solvents are explicit errors',()=>{const w={...workspace,fragrances:[fragrance('Rose'),fragrance('Oud',{defaultType:''})]};assert(deriveFragrancePlan(w,selections,'').errors.some(t=>t.includes('configure')));});
+test('no arbitrary bottle selected without a configured default',()=>{const w={...workspace,fragrances:[fragrance('Rose',{defaultBottleSize:null})]};assert.equal(deriveFragrancePlan(w,[{fragranceId:'Rose'}],'').bottle,undefined);});

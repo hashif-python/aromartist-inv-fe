@@ -8,8 +8,6 @@ import { toast } from 'sonner';
 export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
   const isEdit = !!bottleSize;
 
-  const [name, setName] = useState('');
-  const [priceMultiplier,setMultiplier]=useState(''),[priceSurcharge,setSurcharge]=useState('0');
   const [volumeMl, setVolumeMl] = useState(50);
   const [bottleMaterialRef, setBottleMaterialRef] = useState('');
   const [pumpMaterialRef,setPumpMaterialRef]=useState('');
@@ -29,16 +27,14 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
       setPumpMaterialRef(bottleSize?.pumpMaterialRef || '');
       setCapMaterialRef(bottleSize?.capMaterialRef || '');
       setDipTubeMaterialRef(bottleSize?.dipTubeMaterialRef || '');
-      setLabelMaterialRef(bottleSize?.labelMaterialRef || '');setMultiplier(bottleSize?.priceMultiplier??'');setSurcharge(bottleSize?.priceSurcharge??'0');
+      setLabelMaterialRef(bottleSize?.labelMaterialRef || '');
       if (bottleSize) {
-        setName(bottleSize.name || '');
         setVolumeMl(bottleSize.volumeMl || 50);
         setStatus(bottleSize.status || 'active');
         const ref = bottleSize.bottleMaterialRef || '';
         setBottleMaterialRef(ref);
         setCustomRef(ref);
       } else {
-        setName('');
         setVolumeMl(50);
         setBottleMaterialRef('');
         setCustomRef('');
@@ -66,17 +62,13 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
   };
 
   const labelFor=m=>`${m.name} · INR ${Number(m.currentCost||0).toFixed(2)}/pcs · ${Number(m.availableStock||0)} pcs available`;
-  const candidates=type=>rawMaterials.filter(m=>m.packagingType===type&&(!(m.compatibleBottleSizes||[]).length||(bottleSize&&m.compatibleBottleSizes.includes(bottleSize.id))));
+  const candidates=type=>rawMaterials.filter(m=>m.packagingType===type);
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      toast.error('Bottle size name is required');
-      return;
-    }
     if (Number(volumeMl) <= 0) {
-      toast.error('Volume (ml) must be greater than 0');
+      toast.error('Bottle Capacity (ml) must be greater than 0');
       return;
     }
 
@@ -88,10 +80,8 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
     setSubmitting(true);
     try {
       const formData = {
-        name: name.trim(),
+        name: `${Number(volumeMl)} ml`,
         volumeMl: Number(volumeMl),
-        priceMultiplier:priceMultiplier===''?null:Number(priceMultiplier),
-        priceSurcharge:Number(priceSurcharge||0),
         bottleMaterialRef: finalMaterialRef,
         pumpMaterialRef:pumpMaterialRef || null,
         capMaterialRef:capMaterialRef || null,
@@ -118,7 +108,7 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-      <div className="erp-panel   max-w-md w-full p-6  space-y-4 ">
+      <div className="erp-panel   max-w-lg w-full max-h-[90vh] overflow-y-auto p-6  space-y-4 ">
         <div className="flex items-center justify-between pb-3 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <div className="p-2 bg-amber-50 rounded-xl text-[var(--primary)]">
@@ -134,17 +124,9 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput
-              label="Size Name"
-              placeholder="e.g. 50 ml or 30 ml Luxury"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-
-            <NumberInput
-              label="Volume (ml)"
+          <div className="grid grid-cols-1 gap-3">
+<NumberInput
+              label="Bottle Capacity (ml)"
               placeholder="e.g. 50"
               value={volumeMl}
               onChange={(e) => setVolumeMl(e.target.value)}
@@ -188,7 +170,7 @@ export const BottleSizeModal = ({ isOpen, bottleSize, onClose, onSuccess }) => {
 
           {[["Pump / Atomizer",'Pump',pumpMaterialRef,setPumpMaterialRef],["Cap",'Cap',capMaterialRef,setCapMaterialRef],["Label",'Label',labelMaterialRef,setLabelMaterialRef],["Separate Dip Tube (optional)",'Dip Tube',dipTubeMaterialRef,setDipTubeMaterialRef]].map(([label,type,value,setValue])=><SelectInput key={label} label={label} required={type!=='Dip Tube'} value={value} onChange={e=>setValue(e.target.value)} options={[{value:'',label:type==='Dip Tube'?'Included in pump / no separate stock':`Select ${label}`},...candidates(type).map(m=>({value:m.id,label:labelFor(m)}))]}/>)}
           <p>One bottle, one pump, one cap and one label per perfume. Defaults are used automatically in product creation. Configure all four before creating products. Link a separate dip tube only if it is stocked separately; leave it blank if included with the pump.</p>
-          <NumberInput label="Fragrance price multiplier (optional)" value={priceMultiplier} onChange={e=>setMultiplier(e.target.value)} min="0.0001" step="0.0001"/><NumberInput label="Size surcharge per bottle (INR)" value={priceSurcharge} onChange={e=>setSurcharge(e.target.value)} min="0" step="0.0001"/><p>Blank multiplier scales the highest fragrance price by volume / 100 ml. Set a multiplier to override size scaling. Final price = highest selected type price × multiplier + surcharge. Packaging costs enter COGS separately; configure a surcharge if needed.</p><p>Displayed availability is stock across your accessible locations. POS validates the exact selling branch. Materials must have the matching subtype in Raw Materials. Empty lists mean no active, compatible material of that subtype.</p><p>Packaging cost per bottle: INR {[bottleMaterialRef,capMaterialRef,pumpMaterialRef,labelMaterialRef,dipTubeMaterialRef].filter(Boolean).reduce((sum,id)=>sum+Number(rawMaterials.find(m=>m.id===id)?.currentCost||0),0).toFixed(2)}</p><SelectInput
+          <p>Displayed availability is stock across your accessible locations. POS validates the exact selling branch. Materials must have the matching subtype in Raw Materials. Empty lists mean no active material of that subtype.</p><p>Packaging cost per bottle: INR {[bottleMaterialRef,capMaterialRef,pumpMaterialRef,labelMaterialRef,dipTubeMaterialRef].filter(Boolean).reduce((sum,id)=>sum+Number(rawMaterials.find(m=>m.id===id)?.currentCost||0),0).toFixed(2)}</p><SelectInput
             label="Status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}

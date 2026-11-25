@@ -13,7 +13,6 @@ import {
   ShoppingCart,
   Calculator,
   BarChart3,
-  User,
   SlidersHorizontal,
   Building2,
   TrendingUp,
@@ -63,8 +62,8 @@ export const NAV_GROUPS = [
     items: [
       { label: "Categories", path: "/inventory/categories", icon: Boxes, permission: "inventory.view" },
       { label: "Raw Materials", path: "/inventory/raw-materials", icon: Boxes, permission: "inventory.view" },
-      { label: "Fragrances", path: "/inventory/fragrances", icon: FlaskConical, permission: "inventory.view" },
       { label: "Bottle Setup", path: "/inventory/bottle-setup", icon: FlaskConical, permission: "production.view" },
+      { label: "Fragrances", path: "/inventory/fragrances", icon: FlaskConical, permission: "inventory.view" },
       { label: "Products & Formulations", path: "/inventory/products", icon: PackageCheck, permission: "inventory.view" },
       { label: "Stock Overview", path: "/inventory/overview", icon: Boxes, permission: "inventory.view" },
       { label: "Stock Adjustments", path: "/inventory/adjustments", icon: SlidersHorizontal, permission: "inventory.adjust" },
@@ -118,6 +117,12 @@ export const NAV_GROUPS = [
         path: "/sales/pos",
         icon: ShoppingCart,
         permission: "sales.pos",
+      },
+      {
+        label: "Offers & Promotions",
+        path: "/sales/offers",
+        icon: ShoppingCart,
+        permission: ["sales.pos", "sales.view"],
       },
       {
         label: "Daily Settlement",
@@ -195,17 +200,11 @@ export const NAV_GROUPS = [
     group: "Settings",
     items: [
       {label: "WhatsApp Integration", path: "/settings/whatsapp", icon: MessageCircle, permission: "*"},
-      {
-        label: "Profile",
-        path: "/settings/profile",
-        icon: User,
-        permission: "*",
-      },
     ],
   },
 ];
 
-const administration={group:'Administration',items:[...NAV_GROUPS.find(g=>g.group==='Dashboard').items,...NAV_GROUPS.find(g=>g.group==='Warehouses').items,...NAV_GROUPS.find(g=>g.group==='Branches').items,...NAV_GROUPS.find(g=>g.group==='Settings').items]};
+const settings={group:'Settings',items:[...NAV_GROUPS.find(g=>g.group==='Warehouses').items,...NAV_GROUPS.find(g=>g.group==='Branches').items,...NAV_GROUPS.find(g=>g.group==='Settings').items]};
 const routePermissions={
 '/warehouses':['administration.warehouse.view','warehouse.view'], '/branches':['administration.branch.view','branch.view'],
 '/inventory/categories':['inventory.category.view','inventory.view'],'/inventory/raw-materials':['inventory.raw_material.view','inventory.view'],'/inventory/fragrances':['inventory.fragrance.view','inventory.view'],'/inventory/formulations':['inventory.formulation.view','inventory.view'],'/inventory/products':['inventory.product.view','inventory.view'],'/inventory/bottle-setup':['inventory.bottle_setup.view','production.view'],'/inventory/overview':['inventory.stock.view','inventory.view'],'/inventory/movements':['inventory.movement.view','inventory.view'],'/inventory/adjustments':['inventory.adjustment.view','inventory.adjust'],'/inventory/wastage':['inventory.wastage.view','inventory.wastage'],'/inventory/low-stock':['inventory.stock.view','inventory.view'],'/transfers':['inventory.transfer.view','transfers.view'],
@@ -213,11 +212,12 @@ const routePermissions={
 '/sales/settlement':['sales.invoice.checkout','sales.pos'],'/sales/pos':['sales.invoice.checkout','sales.pos'],'/sales/invoices':['sales.invoice.view','sales.view'],'/sales/customers':['sales.customer.view','customers.manage'],
 '/accounts/dashboard':['accounting.ledger.view','finance.view'],'/accounts/cash-bank':['accounting.ledger.view','finance.view'],'/accounts/income':['accounting.ledger.view','finance.view'],'/accounts/expenses':['accounting.expense.view','finance.view','finance.expenses'],'/accounts/receivables':['sales.invoice.view','finance.view'],'/accounts/payables':['purchases.bill.view','finance.view'],'/reports':['reports.view','reports.finance','reports.branch']};
 for(const group of NAV_GROUPS)for(const item of group.items)if(routePermissions[item.path])item.permission=routePermissions[item.path];
-for(const item of administration.items)if(routePermissions[item.path])item.permission=routePermissions[item.path];
+for(const item of settings.items)if(routePermissions[item.path])item.permission=routePermissions[item.path];
 const hrItems=[['employees','Employees',['employee','designation']],['attendance','Attendance',['attendance','shift','shift_assignment']],['leaves','Leave Management',['leave','leave_balance','leave_type']],['payroll','Payroll',['payroll','payroll_period','salary','salary_revision']],['salary-advances','Salary Advances',['advance']],['holidays','Holidays',['holiday']],['policy','HR Settings',['policy']]];
 const hrGroup={group:'HRMS',items:hrItems.map(([section,label,resources])=>({label,path:`/hrms/${section}`,icon:Users,permission:resources.map(resource=>`hrms.${resource}.view`)}))};
-administration.items.push({label:'Users',path:'/administration/users',icon:Users,permission:'access.users.manage'},{label:'Roles & Permissions',path:'/administration/roles',icon:SlidersHorizontal,permission:'access.roles.manage'},{label:'Permission Audit',path:'/administration/audit',icon:Receipt,permission:'access.audit.view'});
-export const navigation=[administration,...NAV_GROUPS.filter(g=>!['Dashboard','Branches','Warehouses','Settings'].includes(g.group)).flatMap(g=>g.group==='Sales'?[g,hrGroup]:[g])];
+settings.items.push({label:'Users',path:'/administration/users',icon:Users,permission:'access.users.manage'},{label:'Roles & Permissions',path:'/administration/roles',icon:SlidersHorizontal,permission:'access.roles.manage'},{label:'Permission Audit',path:'/administration/audit',icon:Receipt,permission:'access.audit.view'});
+const groupByName = name => NAV_GROUPS.find(g => g.group === name);
+export const navigation = [groupByName('Dashboard'), groupByName('Inventory'), groupByName('Purchases'), groupByName('Sales'), hrGroup, groupByName('Accounting'), groupByName('Reports'), settings];
 export function flattenNavigation(groups=navigation){return groups.flatMap(g=>g.items.flatMap(function walk(item){return [{...item,group:g.group},...(item.children||[]).flatMap(walk)]}));}
 export function visibleItem(item,hasPermission){return item.permission==='*'||(Array.isArray(item.permission)?item.permission.some(hasPermission):hasPermission(item.permission))||(item.children||[]).some(c=>visibleItem(c,hasPermission));}
-export function pageContext(path){const matches=flattenNavigation().filter(i=>path===i.path||path.startsWith(i.path+'/'));return matches.sort((a,b)=>b.path.length-a.path.length)[0]||{label:'Workspace',group:'PerfumASol'};}
+export function pageContext(path){if(path==='/settings/profile'||path.startsWith('/settings/profile/'))return {label:'Profile & account',group:'Settings'};const matches=flattenNavigation().filter(i=>path===i.path||path.startsWith(i.path+'/'));return matches.sort((a,b)=>b.path.length-a.path.length)[0]||{label:'Workspace',group:'PerfumASol'};}

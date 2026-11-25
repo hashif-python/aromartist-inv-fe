@@ -1,7 +1,6 @@
-import {apiClient as api} from '../../api/client';
+import {fetchCategories} from '../../api/categoryApi';
 import React, { useState, useEffect } from 'react';
-import {FragrancePriceFields} from '../../components/Perfume/FragrancePriceFields';
-import { TextInput, SelectInput, NumberInput, CurrencyInput } from '../../components/forms/FormControls';
+import { TextInput, SelectInput, NumberInput } from '../../components/forms/FormControls';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { purchaseApi } from '../../api/purchaseApi';
 import { inventoryApi } from '../../api/inventoryApi';
@@ -16,7 +15,7 @@ import {
 import { toast } from 'sonner';
 
 export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialEdit = false }) => {
-  const { hasPermission, singleLocationMode, storeSetup } = useAuth();
+  const { hasPermission } = useAuth();
   const canEdit = hasPermission('warehouse.manage');
 
   const [activeTab, setActiveTab] = useState('Overview');
@@ -26,41 +25,14 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [categories,setCategories]=useState([]);
-  const [bottleSizes,setBottleSizes]=useState([]);
-  const [compatibleBottleSizes,setCompatibleBottleSizes]=useState([]);
-  useEffect(()=>{api.get("/bottle-sizes/").then(({data})=>setBottleSizes(data)).catch(()=>toast.error("Bottle sizes could not be loaded"))},[]);
-  useEffect(()=>{api.get('/inventory/categories/').then(({data})=>setCategories(data)).catch(()=>{})},[]);
+  const [categoryLoading,setCategoryLoading]=useState(true);
+  const [categoryError,setCategoryError]=useState(false);
+  useEffect(()=>{if(!isOpen)return;let live=true;setCategoryLoading(true);setCategoryError(false);fetchCategories().then(rows=>{if(live)setCategories(rows)}).catch(()=>{if(live){setCategories([]);setCategoryError(true);toast.error('Unable to load categories')}}).finally(()=>{if(live)setCategoryLoading(false)});return()=>{live=false}},[isOpen,material?.id]);
+  const [subcategory,setSubcategory]=useState('');
   const [category, setCategory] = useState('Perfume Oil');
-  const [fragrancePrices,setFragrancePrices]=useState({});
   const [packagingType,setPackagingType]=useState('');
   const [unit, setUnit] = useState('ml');
-  const [currentCost, setCurrentCost] = useState(0);
-  const [minStock, setMinStock] = useState(0);
   const [status, setStatus] = useState('active');
-  const [locations, setLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [expectedQuantity, setExpectedQuantity] = useState(null);
-  const [quantityError, setQuantityError] = useState('');
-  const canAdjust = hasPermission('inventory.adjust') || hasPermission('warehouse.manage');
-  useEffect(() => {
-    Promise.all([api.get('/warehouses/'), api.get('/branches/')]).then(([w,b]) => {
-      const all=[...(w.data||[]),...(b.data||[])].filter(x=>x.status==='active'&&!x.isVirtual);
-      const allowed=singleLocationMode?all.filter(x=>String(x.id)===String(storeSetup?.warehouseId)):all;
-      setLocations(allowed);
-      setSelectedLocation(v=>allowed.some(x=>String(x.id)===String(v))?v:String(allowed[0]?.id||''));
-    }).catch(()=>setQuantityError('Could not load authorized locations.'));
-  }, [singleLocationMode, storeSetup?.warehouseId]);
-  useEffect(() => {
-    if (!isOpen || !material?.id || !selectedLocation || !isEditing) return;
-    let live=true;
-    setExpectedQuantity(null);setQuantity('');setQuantityError('');
-    inventoryApi.getCurrentQuantity(material.id, selectedLocation).then(({data})=>{
-      if(live){setQuantity(String(data.quantity));setExpectedQuantity(String(data.quantity));}
-    }).catch(()=>{if(live)setQuantityError('Unable to load current stock at this location.');});
-    return ()=>{live=false};
-  }, [isOpen, material?.id, selectedLocation, isEditing]);
-
   // Movements & History State
   const [movements, setMovements] = useState([]);
   const [stockRows, setStockRows] = useState([]);
@@ -74,12 +46,10 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
     if (material) {
       setCode(material.code || '');
       setName(material.name || '');
-      setCategory(material.categoryRef || '');
-      setPackagingType(material.packagingType || '');setFragrancePrices(material.fragrancePrices||{});
-      setCompatibleBottleSizes(material.compatibleBottleSizes || []);
+      setCategory(String(material.categoryRef || ''));
+      setSubcategory(String(material.subcategoryRef||''));
+      setPackagingType(material.packagingType || '');
       setUnit(material.unit || 'ml');
-      setCurrentCost(material.currentCost || 0);
-      setMinStock(material.minStock || 0);
       setStatus(material.status || 'active');
       setIsEditing(initialEdit);
       setActiveTab('Overview');
@@ -124,6 +94,7 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
       return;
     }
 
+    if (categoryLoading || categoryError || !categories.some(c=>c.id===category&&(c.status==='active'||c.id===String(material.categoryRef)))) {toast.error('Select a valid category after categories have loaded.');return;}
     if (!name || !name.toString().trim()) {
       toast.error('Material name is required');
       return;
@@ -132,38 +103,18 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
       toast.error('Unit is required');
       return;
     }
-    if (currentCost === '' || currentCost === null || isNaN(Number(currentCost))) {
-      toast.error('Valid current cost is required');
-      return;
-    }
-    if (minStock === '' || minStock === null || isNaN(Number(minStock))) {
-      toast.error('Valid minimum stock limit is required');
-      return;
-    }
-
-    if (canAdjust && (!selectedLocation || expectedQuantity === null || quantityError)) {toast.error('Current quantity is not loaded. Select a valid stock location.');return;}
     setIsSaving(true);
     try {
       const updatedData = {
         code,
         name,
         categoryRef:category,
-        fragrancePrices:categories.find(c=>c.id===category)?.categoryType==='Perfume Oil'?fragrancePrices:{},
-        packagingType:categories.find(c=>c.id===category)?.categoryType==='Packaging'?packagingType:'',
-        compatibleBottleSizes,
+        ...(subcategory?{subcategoryRef:subcategory}:{}),
+        packagingType:material.categoryType==='Packaging'?packagingType:'',
         unit,
-        currentCost: Number(currentCost),
-        minStock: Number(minStock),
         status,
       };
 
-      if (canAdjust && selectedLocation && expectedQuantity !== null) {
-        if (quantity === '' || !Number.isFinite(Number(quantity)) || Number(quantity) < 0 || (unit === 'pcs' && !Number.isInteger(Number(quantity)))) {
-          toast.error('Enter a valid non-negative current quantity.');setIsSaving(false);return;
-        }
-        // Post the stock correction first; a 409 leaves master data untouched.
-        await inventoryApi.setCurrentQuantity(material.id, {locationId:selectedLocation,quantity,expectedQuantity});
-      }
       const response=await inventoryApi.updateRawMaterial(material.id, updatedData);
       toast.success(`Raw material ${name} updated successfully!`);
       onUpdate(response.data);
@@ -253,21 +204,19 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
                 />
               </div>
 
-              {categories.find(c=>c.id===category)?.categoryType==='Perfume Oil'&&<FragrancePriceFields value={fragrancePrices} onChange={setFragrancePrices}/>}<div className="grid grid-cols-3 gap-4">
-                {categories.find(c=>c.id===category)?.categoryType==='Packaging'&&<SelectInput label="Packaging subtype" value={packagingType} onChange={e=>setPackagingType(e.target.value)} required options={[{value:'',label:'Select subtype'},...['Bottle','Pump','Cap','Label','Dip Tube','Other'].map(value=>({value,label:value==='Pump'?'Pump / Atomizer':value}))]}/>}
-                {categories.find(c=>c.id===category)?.categoryType==='Packaging' && <label className="block text-sm font-medium">Compatible Bottle Sizes (Pumps / Caps / Packaging)
-                  <select multiple value={compatibleBottleSizes} onChange={e=>setCompatibleBottleSizes(Array.from(e.target.selectedOptions,o=>o.value))} className="block w-full border rounded-lg p-2 mt-1">
-                    {bottleSizes.filter(b=>b.status==='active'||compatibleBottleSizes.includes(b.id)).map(b=><option key={b.id} value={b.id}>{b.name} ({b.volumeMl} ml)</option>)}
-                  </select><span className="block text-xs text-gray-500">Leave empty for all sizes. Hold Ctrl to select multiple.</span>
-                </label>}
+              <div className="grid grid-cols-3 gap-4">
+                {material.categoryType==='Packaging'&&<SelectInput label="Packaging subtype" value={packagingType} onChange={e=>setPackagingType(e.target.value)} required options={[{value:'',label:'Select subtype'},...['Bottle','Pump','Cap','Label','Dip Tube','Other'].map(value=>({value,label:value==='Pump'?'Pump / Atomizer':value}))]}/>}
+                
                 <SelectInput
                   label="Category"
                   value={category}
-                  onChange={(e) => {setCategory(e.target.value);if(categories.find(c=>c.id===e.target.value)?.categoryType!=='Packaging')setCompatibleBottleSizes([]);setUnit(categories.find(c=>c.id===e.target.value)?.unit||'')}}
-                  options={categories.filter(c=>c.status==='active'||c.id===category).map(c=>({value:c.id,label:c.name}))}
+                  onChange={(e) => {setCategory(e.target.value);setSubcategory('');setUnit('');}}
+                  required disabled={categoryLoading||categoryError}
+                  options={[{value:'',label:categoryLoading?'Loading categories…':categoryError?'Unable to load categories':'Select category'},...categories.filter(c=>c.status==='active'||c.id===String(material.categoryRef)).map(c=>({value:c.id,label:c.name+(c.status==='inactive'?' (Inactive)':'')}))]}
                 />
+                <SelectInput label="Subcategory" value={subcategory} required={!!material.subcategoryRef||category!==String(material.categoryRef)} onChange={e=>{const sub=(categories.find(c=>c.id===category)?.subcategories||[]).find(s=>String(s.id)===e.target.value);setSubcategory(e.target.value);setUnit(sub?.unit||material.unit);}} options={[{value:'',label:'Select subcategory'},...(categories.find(c=>c.id===category)?.subcategories||[]).filter(s=>s.status==='active'||String(s.id)===String(material.subcategoryRef)).map(s=>({value:String(s.id),label:s.name}))]}/>
                 <TextInput
-                  label="Unit (from Category)" readOnly
+                  label="Material Unit" readOnly
                   required
                   value={unit}
                   
@@ -283,33 +232,6 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <CurrencyInput
-                  label="Current Cost Rate (₹)"
-                  required
-                  value={currentCost}
-                  onChange={(e) => setCurrentCost(e.target.value)}
-                />
-                <NumberInput
-                  label="Minimum Reorder Threshold Stock"
-                  required
-                  value={minStock}
-                  onChange={(e) => setMinStock(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2 border border-gray-200 rounded-xl p-3">
-                <label className="erp-field">Stock location
-                  <select className="erp-input" value={selectedLocation} onChange={e=>setSelectedLocation(e.target.value)} disabled={!canAdjust}>
-                    {locations.map(l=><option key={l.id} value={l.id}>{l.name} ({l.kind})</option>)}
-                  </select>
-                </label>
-                <label className="erp-field">Current Quantity ({unit})
-                  <input className="erp-input" type="number" min="0" step={unit==='pcs'?'1':'0.0001'} value={quantity} onChange={e=>setQuantity(e.target.value)} disabled={!canAdjust||expectedQuantity===null} placeholder="Loading actual current stock…" />
-                </label>
-                {quantityError&&<p role="alert" className="text-red-700">{quantityError}</p>}
-                <p className="text-xs text-gray-600">Changes are recorded as stock adjustments at the selected location; previous movements remain intact.</p>
-              </div>
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -382,7 +304,6 @@ export const RawMaterialModal = ({ isOpen, material, onClose, onUpdate, initialE
                         <span className="font-semibold text-gray-800">{material.category}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500 font-medium block">Compatible Bottle Sizes:</span><span>{(material.compatibleBottleSizes || []).length ? bottleSizes.filter(b=>material.compatibleBottleSizes.includes(b.id)).map(b=>b.name).join(", ") : "All sizes"}</span>
                         <span className="text-gray-500 font-medium block">Unit:</span>
                         <span className="font-mono font-bold uppercase text-gray-900">{material.unit}</span>
                       </div>

@@ -127,18 +127,3 @@
 @media(max-width:639px){.erp-topbar{padding:0 14px;}.erp-page{padding:20px 14px;}.erp-page h1{font-size:24px;}.erp-stat{padding:18px;}.erp-stat .stat-value{font-size:24px;}}
 
 }
-
-/* Consistent Perfume POS-inspired headings across shared PageHeader screens. */
-.erp-page-header {position:relative;isolation:isolate;padding:26px 28px;border-radius:18px;background:linear-gradient(105deg,#111d32 0%,#19213e 52%,#1d194c 100%);color:#fff;box-shadow:0 12px 26px rgba(16,24,54,.14);margin-bottom:22px;align-items:center;}
-.erp-page-header .erp-hero-kicker {color:#c6b9ff;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;margin-bottom:7px;}
-.erp-page-header h1 {color:#fff!important;font-size:clamp(23px,2.1vw,32px);font-weight:850;line-height:1.15;letter-spacing:-.035em;}
-.erp-page-header p {color:#cbd5e1!important;font-size:13px;line-height:1.55;margin-top:7px;}
-.erp-page-header .eyebrow {color:#c6b9ff;gap:7px;margin-bottom:9px;}
-.erp-page-header .eyebrow a,.erp-page-header .eyebrow span {color:inherit;}
-.erp-page-header .erp-header-actions {padding:0;gap:10px;}
-.erp-page-header .erp-hero-refresh {display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(255,255,255,.23);background:rgba(255,255,255,.11);color:#fff;border-radius:12px;padding:11px 16px;font-size:13px;font-weight:650;transition:background .2s ease;}
-.erp-page-header .erp-hero-refresh:hover {background:rgba(255,255,255,.19);}
-.erp-page-header .erp-header-actions .erp-secondary {background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.22);}
-.erp-page-header .erp-header-actions .erp-secondary:hover {background:rgba(255,255,255,.2);}
-.erp-page-header .erp-header-actions .erp-primary {box-shadow:0 3px 10px rgba(0,0,0,.16);}
-@media(max-width:639px) {.erp-page-header {padding:22px 20px;border-radius:16px;gap:16px;}.erp-page-header .erp-header-actions {width:100%;}.erp-page-header .erp-hero-refresh {flex:1;}}

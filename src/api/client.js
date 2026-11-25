@@ -38,12 +38,13 @@ apiClient.interceptors.request.use((config) => {
 export const errorMessage = (error) => {
   const status = error.response?.status;
   const data = error.response?.data;
+  if (status === 404) return `API endpoint not found (404): ${error.config?.url || "unknown endpoint"}. Check the API route and base URL.`;
   if (!data) return "Unable to reach the backend. Check that it is running.";
   if (typeof data === "string") {
     // Django/NGINX can return an HTML error page; never enumerate its characters.
     if (/^\s*</.test(data) || /<html[\s>]/i.test(data)) {
       return status === 404
-        ? "API endpoint not found (404). Verify that the promotions backend is deployed and the frontend API base URL is correct."
+        ? "API endpoint not found (404). Check the API route and base URL."
         : `Server returned an HTML error page (HTTP ${status || "unknown"}). Check the backend logs and API URL.`;
     }
     return data.slice(0, 500);
@@ -84,7 +85,7 @@ apiClient.interceptors.response.use(
       }
     }
     error.normalizedErrors = error.response?.data;
-    if (!original?.url.includes("/auth/")) toast.error(errorMessage(error));
+    if (!original?.url?.includes("/auth/")) toast.error(errorMessage(error));
     return Promise.reject(error);
   },
 );

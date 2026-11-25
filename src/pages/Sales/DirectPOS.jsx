@@ -46,7 +46,7 @@ export default function DirectPOS(){
   lock.current=true;setBusy(true);setError('');
   try{
    if(pending){const state=await api.get('/perfume-status/',{params:{checkoutKey:pending.checkoutKey}});if(state.data.invoice)return done(state.data.invoice);return await post(pending);}
-   const payload={branchId,physicalBranchId,cart:cart.map(({productId,recipeRevision,pricingToken,qty})=>({productId,recipeRevision,pricingToken,qty})),customerId,paymentMethod:method,discount:Number(discountAmount.toFixed(2)),checkoutKey:crypto.randomUUID(),tendered:Number(cash||payable)};
+   const payload={branchId,physicalBranchId,cart:cart.map(({productId,recipeRevision,pricingToken,qty})=>({productId,recipeRevision,pricingToken,qty})),customerId,paymentMethod:method,gstRate,interState,discount:Number(discountAmount.toFixed(2)),checkoutKey:crypto.randomUUID(),tendered:Number(cash||payable)};
    const r=await api.post('/perfume-quote/',payload);
    setQuote(r.data);
    if(method==='Cash'&&Number(cash||payable)<Number(r.data.total))throw Error('Cash received is below the total.');
@@ -98,7 +98,7 @@ export default function DirectPOS(){
    <div className="flex flex-wrap items-center justify-between gap-3 mb-3"><div><h2 className="text-lg font-extrabold text-slate-900">Offers &amp; Promotions</h2><p className="text-xs text-slate-600">Current offers for this selling branch. Eligible perfumes show an offer badge below.</p></div><span className="rounded-full bg-amber-100 text-amber-900 px-3 py-1 text-xs font-bold">{activeOffers.length} available</span></div>
    {offersLoading?<p className="text-sm text-slate-500">Loading offers…</p>:offersError?<p role="alert" className="text-sm text-rose-700">Could not load offers: {offersError}</p>:activeOffers.length===0?<p className="text-sm text-slate-500">No active offers available for this branch.</p>:
    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{activeOffers.map(o=><div key={o.id} className="rounded-xl border border-amber-200 bg-white p-4 shadow-sm"><span className="inline-flex rounded-lg bg-amber-100 px-2 py-1 text-xs font-black text-amber-900">{offerLabel(o)}</span><h3 className="mt-2 font-bold text-slate-900">{o.name}</h3>{o.description&&<p className="mt-1 text-xs text-slate-600">{o.description}</p>}<p className="mt-2 text-xs text-slate-500">{(o.products||[]).length} eligible products{o.ends_at?` · Ends ${new Date(o.ends_at).toLocaleDateString()}`:''}</p></div>)}</div>}
-   <p className="mt-3 text-xs text-amber-900">Promotions are displayed for discovery. Final eligibility and discount must be confirmed by the backend quote at checkout; these cards do not alter the bill.</p>
+   <p className="mt-3 text-xs text-amber-900">Promotions are displayed for discovery. Eligible automatic promotions are applied in the server quote and checkout.</p>
   </section>
   {creating&&<RecipeEditor key={creating?.id||'new'} initialValues={typeof creating==='object'?{...creating,id:undefined,name:`${creating.name} custom`}:undefined} branchId={branchId} physicalBranchId={physicalBranchId} onCancel={()=>setCreating(false)} onSaved={p=>{setCreating(false);setProducts(rows=>[p,...rows.filter(x=>x.id!==p.id)]);add(p);}}/>}
   <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
@@ -137,9 +137,9 @@ export default function DirectPOS(){
        <label className="flex gap-2 items-center text-xs text-slate-600"><input type="checkbox" checked={interState} onChange={e=>setInterState(e.target.checked)}/>Inter-state (IGST)</label>
        <div className="flex justify-between text-xs text-slate-600"><span>Taxable value (estimate)</span><span>{money(taxable)}</span></div>
        {interState?<div className="flex justify-between text-xs text-slate-600"><span>IGST included (estimate)</span><span>{money(includedTax)}</span></div>:<><div className="flex justify-between text-xs text-slate-600"><span>CGST included (estimate)</span><span>{money(includedTax/2)}</span></div><div className="flex justify-between text-xs text-slate-600"><span>SGST included (estimate)</span><span>{money(includedTax-includedTax/2)}</span></div></>}
-       <p className="text-[11px] text-amber-700">GST figures are previews only: this checkout backend currently saves zero tax. Do not use these estimates as a tax invoice.</p>
+       <p className="text-[11px] text-amber-700">Final GST and promotions are calculated by the server before confirmation.</p>
      </div>
-     <div className="border-t border-dashed border-slate-300 pt-4 space-y-2"><div className="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span>{money(total)}</span></div><p className="text-[11px] text-amber-700">The discount is sent to backend checkout for validation. GST is displayed as an estimate until backend tax posting is implemented.</p><div className="flex items-center justify-between pt-2"><strong className="text-base">Total payable</strong><strong className="text-2xl text-violet-800">{money(payable)}</strong></div>{method==='Cash'&&<p className="text-xs text-emerald-700">Estimated change: {money(Math.max(0,Number(cash||payable)-payable))}</p>}</div>
+     <div className="border-t border-dashed border-slate-300 pt-4 space-y-2"><div className="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span>{money(total)}</span></div><p className="text-[11px] text-amber-700">Final discounts and GST are confirmed by the server.</p><div className="flex items-center justify-between pt-2"><strong className="text-base">Total payable</strong><strong className="text-2xl text-violet-800">{money(payable)}</strong></div>{method==='Cash'&&<p className="text-xs text-emerald-700">Estimated change: {money(Math.max(0,Number(cash||payable)-payable))}</p>}</div>
      <button className="w-full rounded-xl bg-violet-700 hover:bg-violet-800 py-3.5 text-white font-extrabold text-sm shadow-sm disabled:opacity-40" disabled={!!pending||busy||!usable||!cart.length||cart.some(r=>!Number.isInteger(r.qty)||r.qty<1)} onClick={pay}>{busy?'Processing…':'Validate Stock & Complete Sale →'}</button>
      {quote&&<div className="rounded-xl bg-white p-3 text-xs border border-slate-200"><h3 className="font-bold mb-2">Ingredient & packaging requirements</h3>{(quote.ingredients||[]).map(r=><p key={r.materialId}>{r.name}: {r.required} {r.unit} required / {r.available} available</p>)}</div>}
     </div>
@@ -162,10 +162,10 @@ export default function DirectPOS(){
     <div className="flex justify-between"><span className="text-slate-500">Items</span><strong>{itemCount}</strong></div>
     <div className="flex justify-between"><span className="text-slate-500">Payment method</span><strong>{confirmSale.payload.paymentMethod}</strong></div>
     <div className="border-t border-slate-200 pt-3 flex justify-between"><span className="text-slate-500">Subtotal</span><strong>{money(total)}</strong></div>
-    <div className="flex justify-between"><span className="text-slate-500">Discount</span><strong className="text-emerald-700">−{money(confirmSale.payload.discount)}</strong></div>
+    <div className="flex justify-between"><span className="text-slate-500">Discount</span><strong className="text-emerald-700">−{money(confirmSale.quote.discount ?? confirmSale.payload.discount)}</strong></div>
     <div className="flex justify-between"><span className="text-slate-500">GST (invoice-recorded)</span><strong>{money(confirmSale.quote.taxTotal||0)}</strong></div>
     <div className="rounded-xl bg-cyan-50 px-4 py-3 flex items-center justify-between"><span className="font-semibold text-slate-800">Amount to collect</span><strong className="text-xl text-slate-950">{money(confirmSale.quote.total)}</strong></div>
-    <p className="text-xs text-slate-500">GST is shown from the server quote; a POS GST preview is not added to the invoice.</p>
+    <p className="text-xs text-slate-500">GST and eligible automatic promotions are included in the server quote.</p>
    </div>
    <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4"><button type="button" disabled={busy} onClick={()=>setConfirmSale(null)} className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-700 hover:bg-slate-100">Cancel</button><button type="button" disabled={busy} onClick={confirmCheckout} className="flex-1 rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-50">{busy?'Processing…':'Confirm & post sale'}</button></div>
   </div>
