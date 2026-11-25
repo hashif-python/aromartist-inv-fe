@@ -42,7 +42,7 @@ export const BottleSizeMaster = () => {
       });
 
       setRawMaterialsMap(rmMap);
-      setBottleSizes(sizes);
+      setBottleSizes([...sizes].sort((a, b) => Number(a.volumeMl) - Number(b.volumeMl)));
     } catch (err) {
       console.error(err);
       toast.error('Failed to load bottle sizes from backend');
@@ -73,76 +73,42 @@ export const BottleSizeMaster = () => {
     }
   };
 
+  const components = [
+    ['Bottle', 'bottleMaterialRef'], ['Cap', 'capMaterialRef'],
+    ['Pump / Atomizer', 'pumpMaterialRef'], ['Label', 'labelMaterialRef'],
+    ['Separate Dip Tube', 'dipTubeMaterialRef'],
+  ];
   const columns = [
-    ...[['Cap','capMaterialRef'],['Pump / Atomizer','pumpMaterialRef'],['Label','labelMaterialRef'],['Separate Dip Tube','dipTubeMaterialRef']].map(([header,accessor])=>({header,accessor,render:row=>getMaterialLabel(row[accessor])})),
-    {
-      header: 'Bottle Capacity (ml)',
-      accessor: 'volumeMl',
-      render: (row) => (
-        <span className="font-bold text-[var(--primary)] font-mono bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
-          {row.volumeMl} ml
-        </span>
-      ),
-    },
-    {
-      header: 'Bottle Material Reference',
-      accessor: 'bottleMaterialRef',
-      render: (row) => (
-        <span className="font-mono text-xs text-gray-700 font-medium">
-          {getMaterialLabel(row.bottleMaterialRef)}
-        </span>
-      ),
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (row) => <StatusBadge status={row.status || 'active'} />,
-    },
-    {
-      header: 'Actions',
-      render: (row) => (
-        <div className="flex items-center space-x-1.5 justify-end">
-          <button
-            onClick={() => setViewSize(row)}
-            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
-            title="View Details"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>View</span>
-          </button>
-          <Can permission={["inventory.bottle_setup.edit","production.formulation"]}><button
-            onClick={() => setSelectedSize(row)}
-            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-[var(--primary)] border border-amber-200 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
-            title="Edit Size"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>Edit</span>
-          </button></Can>
-          <Can permission={["inventory.bottle_setup.delete","production.formulation"]}><button
-            onClick={() => setDeleteSizeItem(row)}
-            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-colors"
-            title="Delete Size"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Delete</span>
-          </button></Can>
-        </div>
-      ),
-    },
+    { header: 'Capacity', accessor: 'volumeMl', className: 'whitespace-nowrap',
+      render: row => <span className="font-semibold">{Number(row.volumeMl)} ml</span> },
+    { header: 'Bottle material', accessor: 'bottleMaterialRef', sortable: false,
+      searchValue: row => getMaterialLabel(row.bottleMaterialRef),
+      render: row => <span className="font-medium break-words">{rawMaterialsMap[row.bottleMaterialRef]?.name || (row.bottleMaterialRef ? 'Linked material' : 'Not configured')}</span> },
+    { header: 'Packaging', sortable: false, className: 'whitespace-nowrap',
+      searchValue: row => components.map(([, key]) => getMaterialLabel(row[key])).join(' '),
+      render: row => <span className="text-gray-600">{components.filter(([, key]) => row[key]).length} components</span> },
+    { header: 'Status', accessor: 'status', render: row => <StatusBadge status={row.status || 'active'} /> },
+    { header: 'Actions', align: 'right', sortable: false, className: 'whitespace-nowrap',
+      render: row => <div className="flex items-center justify-end gap-2">
+        <button type="button" onClick={() => setViewSize(row)} title="View details" aria-label="View details" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50"><Eye size={16}/></button>
+        <Can permission={["inventory.bottle_setup.edit","production.formulation"]}><button type="button" onClick={() => setSelectedSize(row)} title="Edit bottle" aria-label="Edit bottle" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-[var(--primary)] hover:bg-gray-50"><Edit3 size={16}/></button></Can>
+        <Can permission={["inventory.bottle_setup.delete","production.formulation"]}><button type="button" onClick={() => setDeleteSizeItem(row)} title="Delete bottle" aria-label="Delete bottle" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50"><Trash2 size={16}/></button></Can>
+      </div> },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 bottle-setup-page">
+      <style>{`.bottle-setup-page .erp-table { min-width: 620px; width: 100%; } .bottle-setup-page .erp-table th, .bottle-setup-page .erp-table td { padding: 12px 16px; vertical-align: middle; } .bottle-setup-page .erp-table th:last-child, .bottle-setup-page .erp-table td:last-child { width: 156px; } .bottle-setup-page .erp-table-scroll { overflow-x: auto; }`}</style>
       <PageHeader
-        title="Bottle Size Master"
-        subtitle="Dynamic bottle volume dimensions loaded dynamically from API backend"
+        title="Bottle Setup"
+        subtitle="Manage bottle capacities and packaging configurations"
         primaryAction={
           <button
             onClick={() => setIsAddOpen(true)}
             className="px-4 py-2 bg-[var(--primary)] hover:bg-[#252525] text-white font-semibold text-xs rounded-xl shadow-xs flex items-center space-x-1.5 transition-colors"
           >
-            <Plus className="w-4 h-4 text-[var(--primary)]" />
-            <span>Add Bottle Size</span>
+            <Plus className="w-4 h-4 text-white" />
+            <span>Add Bottle</span>
           </button>
         }
       />
@@ -158,7 +124,7 @@ export const BottleSizeMaster = () => {
         columns={columns}
         data={bottleSizes}
         loading={loading}
-        searchPlaceholder="Search bottle sizes, volumes or material references..."
+        searchPlaceholder="Search bottles or materials…"
       />
 
       {/* Add / Edit Bottle Size Modal */}
@@ -181,7 +147,7 @@ export const BottleSizeMaster = () => {
       {/* View Bottle Size Modal */}
       {viewSize && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="erp-panel   max-w-md w-full p-6  space-y-4  text-xs">
+          <div className="erp-panel   max-w-lg w-full max-h-[90vh] overflow-y-auto p-6  space-y-4  text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-gray-200">
               <div className="flex items-center space-x-2">
                 <div className="p-2 bg-amber-50 rounded-xl text-[var(--primary)]">
@@ -202,10 +168,12 @@ export const BottleSizeMaster = () => {
                 <span className="text-gray-500">Bottle Capacity:</span>
                 <span className="font-bold text-[var(--primary)]">{viewSize.volumeMl} ml</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-gray-200">
-                <span className="text-gray-500">Material Reference:</span>
-                <span className="font-bold text-gray-900">{getMaterialLabel(viewSize.bottleMaterialRef)}</span>
-              </div>
+              {components.map(([label, key]) => (
+                <div key={key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] gap-3 py-2 border-b border-gray-200">
+                  <span className="text-gray-500">{label}</span>
+                  <span className="font-medium text-gray-900 text-right break-words">{getMaterialLabel(viewSize[key])}</span>
+                </div>
+              ))}
               <div className="flex justify-between py-1 border-b border-gray-200">
                 <span className="text-gray-500">Status:</span>
                 <StatusBadge status={viewSize.status || 'active'} />
