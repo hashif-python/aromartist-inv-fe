@@ -1,4 +1,4 @@
-import {Link} from 'react-router-dom';
+import { useRef } from 'react';\nimport {Link} from 'react-router-dom';
 import React,{useEffect,useRef,useState} from 'react';
 import {apiClient as api,errorMessage} from '../../api/client';
 import {useAuth} from '../../context/AuthContext';
@@ -7,7 +7,33 @@ const money=n=>`INR ${Number(n||0).toFixed(2)}`;
 export default function DirectPOS(){
  const {user,hasPermission,singleLocationMode,storeSetup}=useAuth();const [workspace,setWorkspace]=useState({branches:[]}),[branchId,setBranch]=useState(storeSetup?.branchId||user?.branchId||''),[physicalBranchId,setPhysical]=useState(''),[products,setProducts]=useState([]),[search,setSearch]=useState(''),[cart,setCart]=useState([]),[creating,setCreating]=useState(false),[customers,setCustomers]=useState([]),[customerId,setCustomer]=useState('cust-walkin'),[method,setMethod]=useState('Cash'),[cash,setCash]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[quote,setQuote]=useState(null),[receipt,setReceipt]=useState(null),[pending,setPending]=useState(null),[confirmSale,setConfirmSale]=useState(null);const lock=useRef(false);
  const storageKey=`blend_checkout_${user?.id}`;const branch=workspace.branches.find(b=>b.id===branchId);const physical=workspace.branches.filter(b=>branch?.physicalBranches?.includes(b.id)&&!b.isVirtual);const usable=!!branch&&(!branch.isVirtual||!!physicalBranchId);
- const reload=()=>usable&&api.get('/perfume-products/',{params:{branchId,physicalBranchId}}).then(r=>setProducts(r.data)).catch(e=>setError(errorMessage(e)));
+
+ const [posCatalogueLoading,setPosCatalogueLoading]=useState(false),[posCatalogueError,setPosCatalogueError]=useState(''),[posPage,setPosPage]=useState(1);
+ const posRequest=useRef(null);
+ const reload=async()=>{
+   posRequest.current?.abort();
+   if(!usable){setPosCatalogueLoading(false);return;}
+   const controller=new AbortController();posRequest.current=controller;
+   setPosCatalogueLoading(true);setPosCatalogueError('');
+   try{
+     const first=await api.get('/perfume-products/',{params:{branchId,physicalBranchId,limit:200,offset:0},signal:controller.signal});
+     let rows=first.data;
+     if(!Array.isArray(rows))throw new Error('Unexpected catalogue response');
+     if(rows.length===200){
+       for(let offset=200;offset<10000;offset+=200){
+         const next=await api.get('/perfume-products/',{params:{branchId,physicalBranchId,limit:200,offset},signal:controller.signal});
+         if(!Array.isArray(next.data))throw new Error('Unexpected catalogue response');
+         if(next.data.some(p=>rows.some(r=>r.id===p.id)))break;
+         rows=rows.concat(next.data);if(next.data.length<200)break;
+       }
+     }
+     if(!controller.signal.aborted)setProducts(rows);
+   }catch(e){if(!controller.signal.aborted)setPosCatalogueError(errorMessage(e));}
+   finally{if(!controller.signal.aborted)setPosCatalogueLoading(false);}
+ };
+ useEffect(()=>()=>posRequest.current?.abort(),[]);
+ useEffect(()=>setPosPage(1),[search,branchId,physicalBranchId]);
+
  useEffect(()=>{api.get('/perfume-workspace/').then(r=>{setWorkspace(r.data);if(!branchId&&r.data.branches.length)setBranch(r.data.branches[0].id);}).catch(e=>setError(errorMessage(e)));api.get('/customers/').then(r=>setCustomers(r.data)).catch(()=>{});const saved=sessionStorage.getItem(storageKey);if(saved){try{setPending(JSON.parse(saved));}catch{sessionStorage.removeItem(storageKey);}}},[]);
  useEffect(()=>{setProducts([]);setQuote(null);reload();},[branchId,physicalBranchId,workspace.branches.length]);
  const changeBranch=(value)=>{if(cart.length&&!window.confirm('Clear the current cart and switch branch?'))return;setCart([]);setBranch(value);setPhysical('');};
@@ -105,8 +131,11 @@ export default function DirectPOS(){
    <section className="xl:col-span-7 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
     <div className="p-5 border-b border-slate-100"><div className="flex items-center justify-between mb-4"><div><h2 className="text-lg font-extrabold text-slate-900">Product catalogue</h2><p className="text-xs text-slate-500">Choose a perfume to add to the current bill</p></div><span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">{visibleProducts.length} products</span></div><input aria-label="Search products" className="erp-input w-full" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search perfume name or product code…"/></div>
     <div className="p-4 grid sm:grid-cols-2 2xl:grid-cols-3 gap-3 max-h-[660px] overflow-y-auto">
-     {visibleProducts.length===0&&<p className="col-span-full py-16 text-center text-sm text-slate-500">No perfumes found. Create a custom perfume to begin.</p>}
-     {visibleProducts.map(p=><article className="rounded-2xl border border-slate-200 p-4 bg-white hover:border-violet-300 hover:shadow-md transition-all flex flex-col gap-3" key={p.id}>
+     {posCatalogueLoading&&<div role="status" aria-live="polite" className="col-span-full p-6 text-center"><span className="inline-block h-7 w-7 rounded-full border-4 border-violet-200 border-t-violet-700 animate-spin"/><p className="mt-2 text-sm">Loading perfume catalogue…</p><div className="grid grid-cols-2 gap-3 mt-4">{Array.from({length:6},(_,i)=><div key={i} className="h-24 rounded-xl bg-slate-100 animate-pulse"/>)}</div></div>}
+     {posCatalogueError&&!posCatalogueLoading&&<div role="alert" className="col-span-full p-4 text-red-700">{posCatalogueError} <button className="erp-secondary" onClick={reload}>Retry</button></div>}
+     {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.length===0&&<p className="col-span-full py-16 text-center text-sm text-slate-500">No perfumes found. Create a custom perfume to begin.</p>}
+     {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.length>24&&<div className="col-span-full flex items-center justify-between gap-2"><button className="erp-secondary" disabled={posPage<=1} onClick={()=>setPosPage(p=>p-1)}>Previous</button><span>Page {posPage} / {Math.ceil(visibleProducts.length/24)}</span><button className="erp-secondary" disabled={posPage*24>=visibleProducts.length} onClick={()=>setPosPage(p=>p+1)}>Next</button></div>}
+     {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.slice((posPage-1)*24,posPage*24).map(p=><article className="rounded-2xl border border-slate-200 p-4 bg-white hover:border-violet-300 hover:shadow-md transition-all flex flex-col gap-3" key={p.id}>
       <div className="flex justify-between gap-2"><div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-xl">✦</div><span className={`self-start text-[11px] font-bold px-2 py-1 rounded-full ${p.available>0?'bg-emerald-50 text-emerald-700':'bg-rose-50 text-rose-700'}`}>{p.available} available</span></div>
       <div><h3 className="font-extrabold text-slate-900 text-base">{p.name}</h3><p className="text-xs text-slate-500 mt-1">{p.fillVolumeMl} ml · {p.pricing?.typeName||'Perfume'}</p><p className="text-xl font-black text-violet-800 mt-2">{money(p.sellingPrice)}</p></div>
       {productOffers(p.id).length>0&&<div className="flex flex-wrap gap-1">{productOffers(p.id).map(o=><span key={o.id} title={o.name} className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900">{offerLabel(o)}</span>)}</div>}
