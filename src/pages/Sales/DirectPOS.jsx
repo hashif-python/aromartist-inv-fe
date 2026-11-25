@@ -8,7 +8,7 @@ export default function DirectPOS(){
  const {user,hasPermission,singleLocationMode,storeSetup}=useAuth();const [workspace,setWorkspace]=useState({branches:[]}),[branchId,setBranch]=useState(storeSetup?.branchId||user?.branchId||''),[physicalBranchId,setPhysical]=useState(''),[products,setProducts]=useState([]),[search,setSearch]=useState(''),[cart,setCart]=useState([]),[creating,setCreating]=useState(false),[customers,setCustomers]=useState([]),[customerId,setCustomer]=useState('cust-walkin'),[method,setMethod]=useState('Cash'),[cash,setCash]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[quote,setQuote]=useState(null),[receipt,setReceipt]=useState(null),[pending,setPending]=useState(null),[confirmSale,setConfirmSale]=useState(null);const lock=useRef(false);
  const storageKey=`blend_checkout_${user?.id}`;const branch=workspace.branches.find(b=>b.id===branchId);const physical=workspace.branches.filter(b=>branch?.physicalBranches?.includes(b.id)&&!b.isVirtual);const usable=!!branch&&(!branch.isVirtual||!!physicalBranchId);
 
- const [posCatalogueLoading,setPosCatalogueLoading]=useState(false),[posCatalogueError,setPosCatalogueError]=useState(''),[posPage,setPosPage]=useState(1);
+ const [posCatalogueLoading,setPosCatalogueLoading]=useState(true),[posCatalogueError,setPosCatalogueError]=useState(''),[posPage,setPosPage]=useState(1);
  const posRequest=useRef(null);
  const reload=async()=>{
    posRequest.current?.abort();
@@ -131,8 +131,42 @@ export default function DirectPOS(){
    <section className="xl:col-span-7 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
     <div className="p-5 border-b border-slate-100"><div className="flex items-center justify-between mb-4"><div><h2 className="text-lg font-extrabold text-slate-900">Product catalogue</h2><p className="text-xs text-slate-500">Choose a perfume to add to the current bill</p></div><span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">{visibleProducts.length} products</span></div><input aria-label="Search products" className="erp-input w-full" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search perfume name or product code…"/></div>
     <div className="p-4 grid sm:grid-cols-2 2xl:grid-cols-3 gap-3 max-h-[660px] overflow-y-auto">
-     {posCatalogueLoading&&<div role="status" aria-live="polite" className="col-span-full p-6 text-center"><span className="inline-block h-7 w-7 rounded-full border-4 border-violet-200 border-t-violet-700 animate-spin"/><p className="mt-2 text-sm">Loading perfume catalogue…</p><div className="grid grid-cols-2 gap-3 mt-4">{Array.from({length:6},(_,i)=><div key={i} className="h-24 rounded-xl bg-slate-100 animate-pulse"/>)}</div></div>}
-     {posCatalogueError&&!posCatalogueLoading&&<div role="alert" className="col-span-full p-4 text-red-700">{posCatalogueError} <button className="erp-secondary" onClick={reload}>Retry</button></div>}
+     
+{posCatalogueLoading && (
+  <div
+    role="status"
+    aria-live="polite"
+    className="col-span-full flex min-h-[320px] flex-col items-center justify-center gap-4 py-12"
+  >
+    <div className="relative h-16 w-16">
+      <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+      <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-600 animate-spin" />
+    </div>
+
+    <div className="text-center">
+      <h3 className="text-base font-semibold text-slate-800">
+        Loading perfumes...
+      </h3>
+      <p className="mt-2 text-sm text-slate-500">
+        Retrieving products, prices and stock availability.
+      </p>
+      <p className="mt-1 text-xs text-slate-400">
+        Please wait a moment.
+      </p>
+    </div>
+
+    <div className="flex items-center gap-2">
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          className="h-2 w-2 rounded-full bg-violet-500 animate-bounce"
+          style={{ animationDelay: `${i * 150}ms` }}
+        />
+      ))}
+    </div>
+  </div>
+)}
+{posCatalogueError&&!posCatalogueLoading&&<div role="alert" className="col-span-full p-4 text-red-700">{posCatalogueError} <button className="erp-secondary" onClick={reload}>Retry</button></div>}
      {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.length===0&&<p className="col-span-full py-16 text-center text-sm text-slate-500">No perfumes found. Create a custom perfume to begin.</p>}
      {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.length>24&&<div className="col-span-full flex items-center justify-between gap-2"><button className="erp-secondary" disabled={posPage<=1} onClick={()=>setPosPage(p=>p-1)}>Previous</button><span>Page {posPage} / {Math.ceil(visibleProducts.length/24)}</span><button className="erp-secondary" disabled={posPage*24>=visibleProducts.length} onClick={()=>setPosPage(p=>p+1)}>Next</button></div>}
      {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.slice((posPage-1)*24,posPage*24).map(p=><article className="rounded-2xl border border-slate-200 p-4 bg-white hover:border-violet-300 hover:shadow-md transition-all flex flex-col gap-3" key={p.id}>
