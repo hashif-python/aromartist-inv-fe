@@ -44,7 +44,7 @@ for p in files:
  s=s.replace('{visibleProducts.map(','''{!posCatalogueLoading&&!posCatalogueError&&visibleProducts.length>24&&<div className="col-span-full flex items-center justify-between gap-2"><button className="erp-secondary" disabled={posPage<=1} onClick={()=>setPosPage(p=>p-1)}>Previous</button><span>Page {posPage} / {Math.ceil(visibleProducts.length/24)}</span><button className="erp-secondary" disabled={posPage*24>=visibleProducts.length} onClick={()=>setPosPage(p=>p+1)}>Next</button></div>}
      {!posCatalogueLoading&&!posCatalogueError&&visibleProducts.slice((posPage-1)*24,posPage*24).map(''')
  if not re.search(r'import[^;]*\\buseRef\\b[^;]*from\\s*[\'"]react[\'"]',s):
-  s="import { useRef } from 'react';\\n"+s
+  s="import { useRef } from 'react';\n"+s
  updates.append((p,s))
 for p,s in updates:
  shutil.copy2(p,p.with_suffix('.jsx.before_pos'));p.write_text(s);print('Updated',p)
