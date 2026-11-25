@@ -19,3 +19,13 @@
 .perfume-editor .erp-primary,.perfume-editor .erp-secondary {min-height:40px;padding:9px 16px;font-size:13px;}
 .perfume-editor .recipe-footer {display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;border-top:1px solid #e2e8f0;padding-top:16px;}
 @media(max-width:800px){.perfume-editor .recipe-grid,.perfume-editor .blend-row,.perfume-editor .recipe-packaging {grid-template-columns:minmax(0,1fr)}.perfume-editor .blend-row button{margin-top:0;justify-self:start}.perfume-editor{padding:14px!important}.perfume-editor .recipe-section{padding:14px!important}}
+
+.product-catalogue-loader{min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;text-align:center;color:#334155}
+.product-catalogue-loader p{font-size:13px;color:#64748b;margin:0}
+.product-catalogue-spinner{width:48px;height:48px;border:4px solid #ede9fe;border-top-color:#7c3aed;border-radius:50%;animation:product-spin .8s linear infinite}
+.product-catalogue-skeleton{width:100%;max-width:900px;margin-top:12px;display:grid;gap:12px}
+.product-catalogue-skeleton div{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:16px}
+.product-catalogue-skeleton span{height:12px;background:#e2e8f0;border-radius:5px;animation:product-pulse 1.4s ease-in-out infinite}
+@keyframes product-spin{to{transform:rotate(360deg)}}
+@keyframes product-pulse{50%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){.product-catalogue-spinner,.product-catalogue-skeleton span{animation:none}}
