@@ -1,0 +1,21 @@
+
+.perfume-editor {max-width:1280px;margin:0 auto;padding:24px!important;display:grid;gap:20px;font-size:14px;line-height:1.5;min-width:0;}
+.perfume-editor > * {margin:0!important;min-width:0;}
+.perfume-editor h2 {font-size:24px;line-height:1.3;}
+.perfume-editor h3 {font-size:16px;margin:0 0 8px;}
+.perfume-editor .erp-field {display:flex;flex-direction:column;gap:7px;min-width:0;font-size:13px;font-weight:600;}
+.perfume-editor .erp-input {width:100%;min-width:0;min-height:44px;font-size:14px;padding:10px 12px;box-sizing:border-box;}
+.perfume-editor .erp-field span {font-size:12px;font-weight:400;color:#64748b;}
+.perfume-editor .recipe-section {padding:20px!important;border:1px solid #e2e8f0;border-radius:14px;display:grid;gap:14px;}
+.perfume-editor .recipe-section > * {margin:0!important;}
+.perfume-editor .recipe-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;}
+.perfume-editor .blend-row {display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:14px;align-items:start;}
+.perfume-editor .blend-row button {margin-top:26px;}
+.perfume-editor .recipe-price {background:#f5f3ff;border-radius:10px;padding:16px;color:#5b21b6;}
+.perfume-editor .recipe-price strong {display:block;font-size:28px;line-height:1.3;}
+.perfume-editor .recipe-packaging {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;}
+.perfume-editor .recipe-packaging h3 {grid-column:1/-1;}
+.perfume-editor .recipe-packaging p {padding:8px 12px;background:#f8fafc;border-radius:8px;overflow-wrap:anywhere;}
+.perfume-editor .erp-primary,.perfume-editor .erp-secondary {min-height:40px;padding:9px 16px;font-size:13px;}
+.perfume-editor .recipe-footer {display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;border-top:1px solid #e2e8f0;padding-top:16px;}
+@media(max-width:800px){.perfume-editor .recipe-grid,.perfume-editor .blend-row,.perfume-editor .recipe-packaging {grid-template-columns:minmax(0,1fr)}.perfume-editor .blend-row button{margin-top:0;justify-self:start}.perfume-editor{padding:14px!important}.perfume-editor .recipe-section{padding:14px!important}}
