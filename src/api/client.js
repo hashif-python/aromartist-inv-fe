@@ -39,7 +39,34 @@ export const errorMessage = (error) => {
   const status = error.response?.status;
   const data = error.response?.data;
   if (status === 404) return `API endpoint not found (404): ${error.config?.url || "unknown endpoint"}. Check the API route and base URL.`;
-  if (!data) return "Unable to reach the backend. Check that it is running.";
+  
+  if (
+    error?.code === "ERR_CANCELED" ||
+    error?.name === "CanceledError" ||
+    error?.name === "AbortError"
+  ) {
+    return "Request cancelled.";
+  }
+
+  if (!data) {
+    if (
+      error?.code === "ECONNABORTED" ||
+      error?.code === "ETIMEDOUT"
+    ) {
+      return "The request timed out. Please try again.";
+    }
+
+    if (error?.code === "ERR_NETWORK") {
+      return "Network connection failed. Please check your connection.";
+    }
+
+    if (error?.response) {
+      return `Request failed (HTTP ${error.response.status}).`;
+    }
+
+    return error?.message || "Unable to complete the request.";
+  }
+
   if (typeof data === "string") {
     // Django/NGINX can return an HTML error page; never enumerate its characters.
     if (/^\s*</.test(data) || /<html[\s>]/i.test(data)) {
@@ -85,7 +112,17 @@ apiClient.interceptors.response.use(
       }
     }
     error.normalizedErrors = error.response?.data;
-    if (!original?.url?.includes("/auth/")) toast.error(errorMessage(error));
+    
+    if (
+      error?.code !== "ERR_CANCELED" &&
+      error?.name !== "CanceledError" &&
+      error?.name !== "AbortError" &&
+      !original?.signal?.aborted &&
+      !original?.url?.includes("/auth/")
+    ) {
+      toast.error(errorMessage(error));
+    }
+
     return Promise.reject(error);
   },
 );
